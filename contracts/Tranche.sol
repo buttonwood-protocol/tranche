@@ -1,17 +1,18 @@
 pragma solidity 0.8.3;
 
 import "@openzeppelin/contracts/utils/Context.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 import "./interfaces/ITranche.sol";
+import "./external/ERC20.sol";
 
 /**
  * @dev ERC20 token to represent a single tranche for a ButtonTranche bond
  *
  */
-contract Tranche is ITranche, ERC20, Ownable {
+contract Tranche is ITranche, ERC20, Ownable, Initializable {
     address public collateralToken;
 
     /**
@@ -25,6 +26,21 @@ contract Tranche is ITranche, ERC20, Ownable {
         string memory symbol,
         address _collateralToken
     ) ERC20(name, symbol) {
+        collateralToken = _collateralToken;
+    }
+
+    /**
+     * @dev Constructor for Tranche ERC@0 token
+     * @param name the ERC20 token name
+     * @param symbol The ERC20 token symbol
+     * @param _collateralToken The address of the ERC20 collateral token
+     */
+    function init(
+        string memory name,
+        string memory symbol,
+        address _collateralToken
+    ) public initializer {
+        super.init(name, symbol);
         collateralToken = _collateralToken;
     }
 

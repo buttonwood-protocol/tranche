@@ -4,8 +4,10 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 import "./interfaces/IBondController.sol";
+import "./interfaces/ITrancheFactory.sol";
 import "./Tranche.sol";
 
 /**
@@ -14,7 +16,7 @@ import "./Tranche.sol";
  * Invariants:
  *  - `totalDebt` should always equal the sum of all tranche tokens' `totalSupply()`
  */
-contract BondController is IBondController, Ownable {
+contract BondController is IBondController, Ownable, Initializable {
     uint256 private constant TRANCHE_RATIO_GRANULARITY = 1000;
 
     address public collateralToken;
@@ -28,11 +30,12 @@ contract BondController is IBondController, Ownable {
      * @dev Constructor for Tranche ERC20 token
      * @param _collateralToken The address of the ERC20 collateral token
      */
-    constructor(
+    function init(
+        address _trancheFactory,
         address _collateralToken,
         uint256[] memory trancheRatios,
         uint256 _maturityDate
-    ) {
+    ) external initializer {
         collateralToken = _collateralToken;
         uint256 totalRatio = 0;
 
@@ -41,10 +44,10 @@ contract BondController is IBondController, Ownable {
             require(ratio < TRANCHE_RATIO_GRANULARITY, "Invalid tranche ratio");
             totalRatio += ratio;
 
-            // TODO: Use minimal proxy + factory
-            ITranche trancheToken = new Tranche("test", "TEST", _collateralToken);
-            tranches.push(TrancheData(trancheToken, ratio));
-            trancheTokenAddresses[address(trancheToken)] = true;
+            address trancheTokenAddress =
+                ITrancheFactory(_trancheFactory).createTranche("ButtonTranche token", "TRANCHE", _collateralToken);
+            tranches.push(TrancheData(ITranche(trancheTokenAddress), ratio));
+            trancheTokenAddresses[trancheTokenAddress] = true;
         }
 
         require(totalRatio == TRANCHE_RATIO_GRANULARITY, "Invalid total tranche ratios");

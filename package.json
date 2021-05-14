@@ -1,5 +1,5 @@
 {
-  "name": "liquidity-rocket",
+  "name": "button-tranche",
   "description": "",
   "version": "1.0.0",
   "devDependencies": {
@@ -69,7 +69,7 @@
     "lint": "yarn run lint:sol && yarn run lint:ts && yarn run prettier:list-different",
     "lint:fix": "yarn run prettier && yarn run lint:sol:fix && yarn run lint:ts:fix",
     "lint:sol": "solhint --config ./.solhint.json --max-warnings 0 \"contracts/**/*.sol\"",
-    "lint:sol:fix": "solhint --config ./.solhint.json --fix --max-warnings 0 \"contracts/**/*.sol\"",
+    "lint:sol:fix": "solhint --config ./.solhint.json --fix --max-warnings 1 \"contracts/**/*.sol\"",
     "lint:ts": "eslint --config ./.eslintrc.yaml --ignore-path ./.eslintignore --ext .js,.ts .",
     "lint:ts:fix": "eslint --config ./.eslintrc.yaml --fix --ignore-path ./.eslintignore --ext .js,.ts .",
     "prettier": "prettier --config .prettierrc --write \"**/*.{js,json,md,sol,ts}\"",
