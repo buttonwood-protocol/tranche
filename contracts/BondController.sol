@@ -2,13 +2,13 @@ pragma solidity 0.8.3;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 import "./interfaces/IBondController.sol";
 import "./interfaces/ITrancheFactory.sol";
-import "./Tranche.sol";
+import "./interfaces/ITranche.sol";
 
 /**
  * @dev ERC20 token to represent a single tranche for a ButtonTranche bond
@@ -16,7 +16,7 @@ import "./Tranche.sol";
  * Invariants:
  *  - `totalDebt` should always equal the sum of all tranche tokens' `totalSupply()`
  */
-contract BondController is IBondController, Ownable, Initializable {
+contract BondController is IBondController, Initializable, AccessControl {
     uint256 private constant TRANCHE_RATIO_GRANULARITY = 1000;
 
     address public collateralToken;
@@ -36,12 +36,14 @@ contract BondController is IBondController, Ownable, Initializable {
         uint256[] memory trancheRatios,
         uint256 _maturityDate
     ) external initializer {
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+
         collateralToken = _collateralToken;
         uint256 totalRatio = 0;
 
         for (uint256 i = 0; i < trancheRatios.length; i++) {
             uint256 ratio = trancheRatios[i];
-            require(ratio < TRANCHE_RATIO_GRANULARITY, "Invalid tranche ratio");
+            require(ratio <= TRANCHE_RATIO_GRANULARITY, "Invalid tranche ratio");
             totalRatio += ratio;
 
             address trancheTokenAddress =
@@ -51,6 +53,7 @@ contract BondController is IBondController, Ownable, Initializable {
         }
 
         require(totalRatio == TRANCHE_RATIO_GRANULARITY, "Invalid total tranche ratios");
+        require(_maturityDate > block.timestamp, "Invalid maturity date");
         maturityDate = _maturityDate;
     }
 
@@ -67,13 +70,18 @@ contract BondController is IBondController, Ownable, Initializable {
         for (uint256 i = 0; i < _tranches.length; i++) {
             // NOTE: solidity 0.8 checks for over/underflow natively so no need for SafeMath
             uint256 trancheValue = (amount * _tranches[i].ratio) / TRANCHE_RATIO_GRANULARITY;
-            uint256 scaledTrancheValue = (trancheValue * collateralBalance) / totalDebt;
-            newDebt += scaledTrancheValue;
 
-            _tranches[i].token.mint(_msgSender(), scaledTrancheValue);
+            // if there is any collateral, we should scale by the collateral:debt ratio
+            if (collateralBalance > 0) {
+                trancheValue = (trancheValue * collateralBalance) / totalDebt;
+            }
+            newDebt += trancheValue;
+
+            _tranches[i].token.mint(_msgSender(), trancheValue);
         }
 
         totalDebt += newDebt;
+        emit Deposit(_msgSender(), amount);
     }
 
     /**
@@ -81,7 +89,10 @@ contract BondController is IBondController, Ownable, Initializable {
      */
     function mature() external override {
         require(!isMature, "Bond is already mature");
-        require(_msgSender() == owner() || maturityDate < block.timestamp, "No permissions to call mature");
+        require(
+            hasRole(DEFAULT_ADMIN_ROLE, _msgSender()) || maturityDate < block.timestamp,
+            "No permissions to call mature"
+        );
 
         TrancheData[] memory _tranches = tranches;
         uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(this));
@@ -104,6 +115,7 @@ contract BondController is IBondController, Ownable, Initializable {
         }
 
         isMature = true;
+        emit Mature(_msgSender());
     }
 
     /**
@@ -115,6 +127,7 @@ contract BondController is IBondController, Ownable, Initializable {
 
         ITranche(tranche).redeem(_msgSender(), _msgSender(), amount);
         totalDebt -= amount;
+        emit RedeemMature(_msgSender(), tranche, amount);
     }
 
     /**
@@ -143,5 +156,7 @@ contract BondController is IBondController, Ownable, Initializable {
         uint256 returnAmount = (total / totalDebt) * collateralBalance;
         totalDebt -= total;
         TransferHelper.safeTransfer(collateralToken, _msgSender(), returnAmount);
+
+        emit Redeem(_msgSender(), amounts);
     }
 }

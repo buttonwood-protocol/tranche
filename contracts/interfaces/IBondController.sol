@@ -15,6 +15,11 @@ struct TrancheData {
  * @dev Controller for a ButtonTranche bond system
  */
 interface IBondController {
+    event Deposit(address from, uint256 amount);
+    event Mature(address caller);
+    event RedeemMature(address user, address tranche, uint256 amount);
+    event Redeem(address user, uint256[] amounts);
+
     /**
      * @dev Deposit `amount` tokens from `msg.sender`, get tranche tokens in return
      * Requirements:
