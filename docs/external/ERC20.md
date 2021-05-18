@@ -1,11 +1,9 @@
 ## `ERC20`
 
-
-
 Implementation of the {IERC20} interface.
 
 This implementation is agnostic to the way tokens are created. This means
-that a supply mechanism has to be added in a derived contract using {_mint}.
+that a supply mechanism has to be added in a derived contract using {\_mint}.
 For a generic mechanism see {ERC20PresetMinterPauser}.
 
 TIP: For a detailed writeup see our guide
@@ -25,10 +23,7 @@ Finally, the non-standard {decreaseAllowance} and {increaseAllowance}
 functions have been added to mitigate the well-known issues around setting
 allowances. See {IERC20-approve}.
 
-
 ### `constructor(string name_, string symbol_)` (public)
-
-
 
 Sets the values for {name} and {symbol}.
 
@@ -40,8 +35,6 @@ construction.
 
 ### `init(string name_, string symbol_)` (public)
 
-
-
 Sets the values for {name} and {symbol}.
 
 The defaut value of {decimals} is 18. To select a different value for
@@ -52,20 +45,14 @@ construction.
 
 ### `name() → string` (public)
 
-
-
 Returns the name of the token.
 
 ### `symbol() → string` (public)
-
-
 
 Returns the symbol of the token, usually a shorter version of the
 name.
 
 ### `decimals() → uint8` (public)
-
-
 
 Returns the number of decimals used to get its user representation.
 For example, if `decimals` equals `2`, a balance of `505` tokens should
@@ -81,19 +68,13 @@ no way affects any of the arithmetic of the contract, including
 
 ### `totalSupply() → uint256` (public)
 
-
-
 See {IERC20-totalSupply}.
 
 ### `balanceOf(address account) → uint256` (public)
 
-
-
 See {IERC20-balanceOf}.
 
 ### `transfer(address recipient, uint256 amount) → bool` (public)
-
-
 
 See {IERC20-transfer}.
 
@@ -104,13 +85,9 @@ Requirements:
 
 ### `allowance(address owner, address spender) → uint256` (public)
 
-
-
 See {IERC20-allowance}.
 
 ### `approve(address spender, uint256 amount) → bool` (public)
-
-
 
 See {IERC20-approve}.
 
@@ -119,8 +96,6 @@ Requirements:
 - `spender` cannot be the zero address.
 
 ### `transferFrom(address sender, address recipient, uint256 amount) → bool` (public)
-
-
 
 See {IERC20-transferFrom}.
 
@@ -131,12 +106,10 @@ Requirements:
 
 - `sender` and `recipient` cannot be the zero address.
 - `sender` must have a balance of at least `amount`.
-- the caller must have allowance for ``sender``'s tokens of at least
-`amount`.
+- the caller must have allowance for `sender`'s tokens of at least
+  `amount`.
 
 ### `increaseAllowance(address spender, uint256 addedValue) → bool` (public)
-
-
 
 Atomically increases the allowance granted to `spender` by the caller.
 
@@ -151,8 +124,6 @@ Requirements:
 
 ### `decreaseAllowance(address spender, uint256 subtractedValue) → bool` (public)
 
-
-
 Atomically decreases the allowance granted to `spender` by the caller.
 
 This is an alternative to {approve} that can be used as a mitigation for
@@ -164,11 +135,9 @@ Requirements:
 
 - `spender` cannot be the zero address.
 - `spender` must have allowance for the caller of at least
-`subtractedValue`.
+  `subtractedValue`.
 
 ### `_transfer(address sender, address recipient, uint256 amount)` (internal)
-
-
 
 Moves tokens `amount` from `sender` to `recipient`.
 
@@ -185,8 +154,6 @@ Requirements:
 
 ### `_mint(address account, uint256 amount)` (internal)
 
-
-
 Creates `amount` tokens and assigns them to `account`, increasing
 the total supply.
 
@@ -197,8 +164,6 @@ Requirements:
 - `to` cannot be the zero address.
 
 ### `_burn(address account, uint256 amount)` (internal)
-
-
 
 Destroys `amount` tokens from `account`, reducing the
 total supply.
@@ -211,8 +176,6 @@ Requirements:
 - `account` must have at least `amount` tokens.
 
 ### `_approve(address owner, address spender, uint256 amount)` (internal)
-
-
 
 Sets `amount` as the allowance of `spender` over the `owner` s tokens.
 
@@ -228,19 +191,15 @@ Requirements:
 
 ### `_beforeTokenTransfer(address from, address to, uint256 amount)` (internal)
 
-
-
 Hook that is called before any transfer of tokens. This includes
 minting and burning.
 
 Calling conditions:
 
-- when `from` and `to` are both non-zero, `amount` of ``from``'s tokens
-will be to transferred to `to`.
+- when `from` and `to` are both non-zero, `amount` of `from`'s tokens
+  will be to transferred to `to`.
 - when `from` is zero, `amount` tokens will be minted for `to`.
-- when `to` is zero, `amount` of ``from``'s tokens will be burned.
+- when `to` is zero, `amount` of `from`'s tokens will be burned.
 - `from` and `to` are never both zero.
 
 To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
-
-
