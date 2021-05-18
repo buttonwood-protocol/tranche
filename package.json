@@ -36,7 +36,7 @@
     "prettier-plugin-solidity": "^1.0.0-beta.1",
     "shelljs": "^0.8.4",
     "solc": "^0.8.0",
-    "solc-0.8": "npm:solc@^0.8.0",
+    "solc-0.8": "npm:solc@0.8.3",
     "solhint": "^3.2.1",
     "solhint-plugin-prettier": "^0.0.5",
     "solidity-coverage": "^0.7.12",
@@ -74,7 +74,7 @@
     "lint:ts:fix": "eslint --config ./.eslintrc.yaml --fix --ignore-path ./.eslintignore --ext .js,.ts .",
     "prettier": "prettier --config .prettierrc --write \"**/*.{js,json,md,sol,ts}\"",
     "prettier:list-different": "prettier --config .prettierrc --list-different \"**/*.{js,json,md,sol,ts}\"",
-    "solc-0.8": "npm:solc@^0.8.0",
+    "solc-0.8": "npm:solc@0.8.3",
     "solidity-docgen": "^0.5.13",
     "test": "hardhat test",
     "typechain": "hardhat typechain"
