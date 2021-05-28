@@ -48,7 +48,7 @@ contract BondController is IBondController, Initializable, AccessControl {
 
         for (uint256 i = 0; i < trancheRatios.length; i++) {
             uint256 ratio = trancheRatios[i];
-            require(ratio <= TRANCHE_RATIO_GRANULARITY, "Invalid tranche ratio");
+            require(ratio <= TRANCHE_RATIO_GRANULARITY, "BondController: Invalid tranche ratio");
             totalRatio += ratio;
 
             address trancheTokenAddress =
@@ -57,8 +57,8 @@ contract BondController is IBondController, Initializable, AccessControl {
             trancheTokenAddresses[trancheTokenAddress] = true;
         }
 
-        require(totalRatio == TRANCHE_RATIO_GRANULARITY, "Invalid total tranche ratios");
-        require(_maturityDate > block.timestamp, "Invalid maturity date");
+        require(totalRatio == TRANCHE_RATIO_GRANULARITY, "BondController: Invalid tranche ratios");
+        require(_maturityDate > block.timestamp, "BondController: Invalid maturity date");
         maturityDate = _maturityDate;
     }
 
@@ -93,10 +93,10 @@ contract BondController is IBondController, Initializable, AccessControl {
      * @inheritdoc IBondController
      */
     function mature() external override {
-        require(!isMature, "Bond is already mature");
+        require(!isMature, "BondController: Already mature");
         require(
             hasRole(DEFAULT_ADMIN_ROLE, _msgSender()) || maturityDate < block.timestamp,
-            "No permissions to call mature"
+            "BondController: Invalid call to mature"
         );
 
         TrancheData[] memory _tranches = tranches;
@@ -127,8 +127,8 @@ contract BondController is IBondController, Initializable, AccessControl {
      * @inheritdoc IBondController
      */
     function redeemMature(address tranche, uint256 amount) external override {
-        require(isMature, "Bond is not mature");
-        require(trancheTokenAddresses[tranche], "Invalid tranche address");
+        require(isMature, "BondController: Bond is not mature");
+        require(trancheTokenAddresses[tranche], "BondController: Invalid tranche address");
 
         ITranche(tranche).redeem(_msgSender(), _msgSender(), amount);
         totalDebt -= amount;
@@ -139,10 +139,10 @@ contract BondController is IBondController, Initializable, AccessControl {
      * @inheritdoc IBondController
      */
     function redeem(uint256[] memory amounts) external override {
-        require(!isMature, "Bond is already mature");
+        require(!isMature, "BondController: Bond is already mature");
 
         TrancheData[] memory _tranches = tranches;
-        require(amounts.length == _tranches.length, "Invalid redeem amounts");
+        require(amounts.length == _tranches.length, "BondController: Invalid redeem amounts");
         uint256 total = 0;
 
         for (uint256 i = 0; i < amounts.length; i++) {
@@ -150,7 +150,7 @@ contract BondController is IBondController, Initializable, AccessControl {
         }
 
         for (uint256 i = 0; i < amounts.length; i++) {
-            require((amounts[i] * 1000) / total == _tranches[i].ratio, "Invalid redemption ratio");
+            require((amounts[i] * 1000) / total == _tranches[i].ratio, "BondController: Invalid redemption ratio");
             _tranches[i].token.burn(_msgSender(), amounts[i]);
         }
 

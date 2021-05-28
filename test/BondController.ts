@@ -127,7 +127,7 @@ describe("Bond Controller", () => {
         bondFactory
           .connect(signers[0])
           .createBond(mockCollateralToken.address, [500, 500], await time.secondsFromNow(-10000)),
-      ).to.be.revertedWith("Invalid maturity date");
+      ).to.be.revertedWith("BondController: Invalid maturity date");
     });
 
     it("should fail with invalid tranche ratios", async () => {
@@ -146,25 +146,25 @@ describe("Bond Controller", () => {
       const mockCollateralToken = <MockERC20>await deploy("MockERC20", signers[0], ["Mock ERC20", "MOCK"]);
       await expect(
         bondFactory.connect(signers[0]).createBond(mockCollateralToken.address, [], await time.secondsFromNow(10000)),
-      ).to.be.revertedWith("Invalid total tranche ratios");
+      ).to.be.revertedWith("BondController: Invalid tranche ratios");
 
       await expect(
         bondFactory
           .connect(signers[0])
           .createBond(mockCollateralToken.address, [10, 20], await time.secondsFromNow(10000)),
-      ).to.be.revertedWith("Invalid total tranche ratios");
+      ).to.be.revertedWith("BondController: Invalid tranche ratios");
 
       await expect(
         bondFactory
           .connect(signers[0])
           .createBond(mockCollateralToken.address, [1005], await time.secondsFromNow(10000)),
-      ).to.be.revertedWith("Invalid tranche ratio");
+      ).to.be.revertedWith("BondController: Invalid tranche ratio");
 
       await expect(
         bondFactory
           .connect(signers[0])
           .createBond(mockCollateralToken.address, [400, 500, 900], await time.secondsFromNow(10000)),
-      ).to.be.revertedWith("Invalid total tranche ratios");
+      ).to.be.revertedWith("BondController: Invalid tranche ratios");
     });
 
     it("gas [ @skip-on-coverage ]", async () => {
@@ -434,12 +434,12 @@ describe("Bond Controller", () => {
     it("should fail to mature from admin an already mature bond", async () => {
       const { bond, admin } = await setup();
       await bond.connect(admin).mature();
-      await expect(bond.connect(admin).mature()).to.be.revertedWith("Bond is already mature");
+      await expect(bond.connect(admin).mature()).to.be.revertedWith("BondController: Already mature");
     });
 
     it("should fail to mature from user if maturity date is not passed", async () => {
       const { bond, user } = await setup();
-      await expect(bond.connect(user).mature()).to.be.revertedWith("No permissions to call mature");
+      await expect(bond.connect(user).mature()).to.be.revertedWith("BondController: Invalid call to mature");
     });
 
     it("gas [ @skip-on-coverage ]", async () => {
@@ -492,7 +492,7 @@ describe("Bond Controller", () => {
 
       await bond.connect(user).deposit(amount);
       await expect(bond.connect(user).redeemMature(tranches[0].address, parse("200"))).to.be.revertedWith(
-        "Bond is not mature",
+        "BondController: Bond is not mature",
       );
     });
 
@@ -500,7 +500,7 @@ describe("Bond Controller", () => {
       const { bond, user } = await setup();
 
       await expect(bond.connect(user).redeemMature(await user.getAddress(), parse("200"))).to.be.revertedWith(
-        "Invalid tranche address",
+        "BondController: Invalid tranche address",
       );
     });
 
@@ -589,21 +589,27 @@ describe("Bond Controller", () => {
       const { bond, user, admin } = await setup();
       await bond.connect(admin).mature();
 
-      await expect(bond.connect(user).redeem([100, 200, 200, 500])).to.be.revertedWith("Bond is already mature");
+      await expect(bond.connect(user).redeem([100, 200, 200, 500])).to.be.revertedWith(
+        "BondController: Bond is already mature",
+      );
     });
 
     it("should fail to redeem with invalid redeem amounts", async () => {
       const { bond, user } = await setup();
 
-      await expect(bond.connect(user).redeem([100, 200])).to.be.revertedWith("Invalid redeem amounts");
-      await expect(bond.connect(user).redeem([100, 200, 200, 500, 100])).to.be.revertedWith("Invalid redeem amounts");
+      await expect(bond.connect(user).redeem([100, 200])).to.be.revertedWith("BondController: Invalid redeem amounts");
+      await expect(bond.connect(user).redeem([100, 200, 200, 500, 100])).to.be.revertedWith(
+        "BondController: Invalid redeem amounts",
+      );
     });
 
     it("should fail to redeem out of ratio", async () => {
       const trancheValues = [200, 300, 500];
       const { bond, user } = await setup(trancheValues);
 
-      await expect(bond.connect(user).redeem([100, 300, 500])).to.be.revertedWith("Invalid redemption ratio");
+      await expect(bond.connect(user).redeem([100, 300, 500])).to.be.revertedWith(
+        "BondController: Invalid redemption ratio",
+      );
     });
 
     it("should fail to redeem more than owned", async () => {
