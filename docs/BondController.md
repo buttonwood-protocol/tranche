@@ -1,12 +1,12 @@
 ## `BondController`
 
-ERC20 token to represent a single tranche for a ButtonTranche bond
+Controller for a ButtonTranche bond
 
 Invariants:
 
 - `totalDebt` should always equal the sum of all tranche tokens' `totalSupply()`
 
-### `init(address _trancheFactory, address _collateralToken, uint256[] trancheRatios, uint256 _maturityDate)` (external)
+### `init(address _trancheFactory, address _collateralToken, address _admin, uint256[] trancheRatios, uint256 _maturityDate)` (external)
 
 Constructor for Tranche ERC20 token
 

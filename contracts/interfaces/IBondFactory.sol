@@ -10,7 +10,6 @@ interface IBondFactory {
      * @dev Deploys a minimal proxy instance for a new bond with the given parameters.
      */
     function createBond(
-        address trancheFactory,
         address _collateralToken,
         uint256[] memory trancheRatios,
         uint256 maturityDate

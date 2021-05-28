@@ -11,7 +11,7 @@ import "./interfaces/ITrancheFactory.sol";
 import "./interfaces/ITranche.sol";
 
 /**
- * @dev ERC20 token to represent a single tranche for a ButtonTranche bond
+ * @dev Controller for a ButtonTranche bond
  *
  * Invariants:
  *  - `totalDebt` should always equal the sum of all tranche tokens' `totalSupply()`
@@ -28,15 +28,20 @@ contract BondController is IBondController, Initializable, AccessControl {
 
     /**
      * @dev Constructor for Tranche ERC20 token
+     * @param _trancheFactory The address of the tranche factory
      * @param _collateralToken The address of the ERC20 collateral token
+     * @param _admin The address of the initial admin for this contract
+     * @param trancheRatios The tranche ratios for this bond
+     * @param _maturityDate The date timestamp in seconds at which this bond matures
      */
     function init(
         address _trancheFactory,
         address _collateralToken,
+        address _admin,
         uint256[] memory trancheRatios,
         uint256 _maturityDate
     ) external initializer {
-        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _setupRole(DEFAULT_ADMIN_ROLE, _admin);
 
         collateralToken = _collateralToken;
         uint256 totalRatio = 0;
