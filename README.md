@@ -1,17 +1,24 @@
-# Solidity Template
+# Button Tranche
 
-My favourite setup for writing Solidity smart contracts.
+A protocol of smart contracts to tranche price risk for rebasing assets.
 
-- [Hardhat](https://github.com/nomiclabs/hardhat): compile and run the smart contracts on a local development network
-- [TypeChain](https://github.com/ethereum-ts/TypeChain): generate TypeScript types for smart contracts
-- [Ethers](https://github.com/ethers-io/ethers.js/): renowned Ethereum library and wallet implementation
-- [Waffle](https://github.com/EthWorks/Waffle): tooling for writing comprehensive smart contract tests
-- [Solhint](https://github.com/protofire/solhint): linter
-- [Solcover](https://github.com/sc-forks/solidity-coverage) code coverage
-- [Prettier Plugin Solidity](https://github.com/prettier-solidity/prettier-plugin-solidity): code formatter
+Any rebasing asset can be deposited as collateral, in return for a series of "tranche" tokens. These tranches represent different slices of the value of the underlying asset. They are typically denoted alphabetically where the A-Tranche is the safest, and the Z-Tranche is the riskiest, but also benefits from leveraged upside. As the price of the underlying collateral changes, so do the respective values of the tranche tokens.
 
-This is a GitHub template, which means you can reuse it as many times as you want. You can do that by clicking the "Use this
-template" button at the top of the page.
+Users can redeem their tranche tokens for the underlying collateral. Tranche tokens get their differing risk profiles because this redemption occurs in a waterfall sequence - tranches are paid back in full in order of seniority. The Z-Tranche is paid out last, but benefits from _all_ gains of the underlying asset.
+
+This redemption can occur in two manners:
+
+- _Mature_: After a bond is "mature", the current value of the underlying collateral is distributed to holding pools for the tranche holders. This locks in the distribution rates - any further changes to the value of the underlying collateral will not affect the value that holders receive. In this state, users can redeem any of their tranche tokens for the respective slice of the holding pool, using the `redeemMature(address token, uint256 amount)` function on the `BondController` instance.
+- _Immature_: When a bond is not yet mature, users can still redeem their tranche tokens - with some restrictions. In order to maintain the value distribution for all other holders, any user who wishes to redeem from an immature bond must do so with _all_ of the tranche tokens at once, in the _original tranche ratio_.
+
+The diagram below depicts the process of depositing a rebasing asset (AMPL in this case), in return for a set of tranche tokens.
+![Deposit](/assets/tranche_diagram.png)
+
+The diagram below depicts the process of redeeming tranche tokens in a mature bond
+![Mature Redemption](/assets/mature_redemption.png)
+
+The diagram below depicts the process of redeeming tranche tokens in an immature bond
+![Immature Redemption](/assets/immature_redemption.png)
 
 ## Usage
 

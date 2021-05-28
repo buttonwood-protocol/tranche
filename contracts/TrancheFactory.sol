@@ -26,12 +26,7 @@ contract TrancheFactory is ITrancheFactory, Context {
         address _collateralToken
     ) external override returns (address) {
         address clone = Clones.clone(target);
-        Tranche(clone).init(name, symbol, _collateralToken);
-        // note we could instead just pass the _msgSender as a param
-        // to initialize as admin
-        Tranche(clone).grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        // note the below may not be necessary
-        Tranche(clone).revokeRole(DEFAULT_ADMIN_ROLE, address(this));
+        Tranche(clone).init(name, symbol, _msgSender(), _collateralToken);
         emit TrancheCreated(clone);
         return clone;
     }

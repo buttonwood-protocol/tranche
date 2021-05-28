@@ -22,18 +22,20 @@ contract Tranche is ITranche, ERC20, Initializable, AccessControl {
     }
 
     /**
-     * @dev Constructor for Tranche ERC@0 token
+     * @dev Constructor for Tranche ERC20 token
      * @param name the ERC20 token name
      * @param symbol The ERC20 token symbol
+     * @param admin The admin of this ERC20 token
      * @param _collateralToken The address of the ERC20 collateral token
      */
     function init(
         string memory name,
         string memory symbol,
+        address admin,
         address _collateralToken
     ) public initializer {
         super.init(name, symbol);
-        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _setupRole(DEFAULT_ADMIN_ROLE, admin);
         collateralToken = _collateralToken;
     }
 

@@ -139,7 +139,7 @@ contract BondController is IBondController, Initializable, AccessControl {
      * @inheritdoc IBondController
      */
     function redeem(uint256[] memory amounts) external override {
-        require(isMature, "Bond is mature");
+        require(!isMature, "Bond is already mature");
 
         TrancheData[] memory _tranches = tranches;
         require(amounts.length == _tranches.length, "Invalid redeem amounts");
@@ -150,15 +150,13 @@ contract BondController is IBondController, Initializable, AccessControl {
         }
 
         for (uint256 i = 0; i < amounts.length; i++) {
-            // NOTE: this might not always hold true due to precision issues
-            // Maybe use a threshold?
             require((amounts[i] * 1000) / total == _tranches[i].ratio, "Invalid redemption ratio");
             _tranches[i].token.burn(_msgSender(), amounts[i]);
         }
 
         uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(this));
         // return as a proportion of the total debt redeemed
-        uint256 returnAmount = (total / totalDebt) * collateralBalance;
+        uint256 returnAmount = (total * collateralBalance) / totalDebt;
         totalDebt -= total;
         TransferHelper.safeTransfer(collateralToken, _msgSender(), returnAmount);
 

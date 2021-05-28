@@ -30,8 +30,8 @@ describe("Tranche Token", () => {
     const receipt = await tx.wait();
 
     let tranche;
-    if (receipt && receipt.events && receipt.events.length === 4 && receipt.events[3].args) {
-      tranche = <Tranche>await hre.ethers.getContractAt("Tranche", receipt.events[3].args.newTrancheAddress);
+    if (receipt && receipt.events && receipt.events.length === 2 && receipt.events[1].args) {
+      tranche = <Tranche>await hre.ethers.getContractAt("Tranche", receipt.events[1].args.newTrancheAddress);
     } else {
       throw new Error("Unable to create new tranche");
     }
