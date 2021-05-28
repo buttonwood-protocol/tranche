@@ -25,12 +25,14 @@ describe("Bond Controller", () => {
     const trancheFactory = <TrancheFactory>await deploy("TrancheFactory", signers[0], [trancheImplementation.address]);
 
     const bondImplementation = <BondController>await deploy("BondController", signers[0], []);
-    const bondFactory = <BondFactory>await deploy("BondFactory", signers[0], [bondImplementation.address]);
+    const bondFactory = <BondFactory>(
+      await deploy("BondFactory", signers[0], [bondImplementation.address, trancheFactory.address])
+    );
 
     const mockCollateralToken = <MockERC20>await deploy("MockERC20", signers[0], ["Mock ERC20", "MOCK"]);
     const tx = await bondFactory
       .connect(signers[0])
-      .createBond(trancheFactory.address, mockCollateralToken.address, tranches, new Date().getTime() + 10000);
+      .createBond(mockCollateralToken.address, tranches, new Date().getTime() + 10000);
     const receipt = await tx.wait();
 
     let bond: BondController | undefined;
@@ -64,7 +66,7 @@ describe("Bond Controller", () => {
   };
 
   describe("Initialization", function () {
-    it("should successfully initialize a tranche token", async () => {
+    it("should successfully initialize a tranche bond", async () => {
       const { bond, tranches, mockCollateralToken, user } = await setupTestContext([100, 200, 200, 500]);
       expect(await bond.collateralToken()).to.equal(mockCollateralToken.address);
       // ensure user has admin permissions
@@ -77,6 +79,28 @@ describe("Bond Controller", () => {
       }
     });
 
+    it("should fail if a bond has already been created", async () => {
+      const signers: Signer[] = await hre.ethers.getSigners();
+
+      const trancheImplementation = <Tranche>await deploy("Tranche", signers[0], []);
+      const trancheFactory = <TrancheFactory>(
+        await deploy("TrancheFactory", signers[0], [trancheImplementation.address])
+      );
+
+      const bondImplementation = <BondController>await deploy("BondController", signers[0], []);
+      const bondFactory = <BondFactory>(
+        await deploy("BondFactory", signers[0], [bondImplementation.address, trancheFactory.address])
+      );
+
+      const mockCollateralToken = <MockERC20>await deploy("MockERC20", signers[0], ["Mock ERC20", "MOCK"]);
+      const maturityDate = new Date().getTime() + 10000;
+      await bondFactory.connect(signers[0]).createBond(mockCollateralToken.address, [100, 200, 200, 500], maturityDate);
+
+      await expect(
+        bondFactory.connect(signers[0]).createBond(mockCollateralToken.address, [100, 200, 200, 500], maturityDate),
+      ).to.be.revertedWith("BondFactory: Bond already exists");
+    });
+
     it("should fail if maturity date is already passed", async () => {
       const signers: Signer[] = await hre.ethers.getSigners();
 
@@ -86,18 +110,15 @@ describe("Bond Controller", () => {
       );
 
       const bondImplementation = <BondController>await deploy("BondController", signers[0], []);
-      const bondFactory = <BondFactory>await deploy("BondFactory", signers[0], [bondImplementation.address]);
+      const bondFactory = <BondFactory>(
+        await deploy("BondFactory", signers[0], [bondImplementation.address, trancheFactory.address])
+      );
 
       const mockCollateralToken = <MockERC20>await deploy("MockERC20", signers[0], ["Mock ERC20", "MOCK"]);
       await expect(
         bondFactory
           .connect(signers[0])
-          .createBond(
-            trancheFactory.address,
-            mockCollateralToken.address,
-            [500, 500],
-            Math.floor(new Date().getTime() / 1000) - 10000,
-          ),
+          .createBond(mockCollateralToken.address, [500, 500], Math.floor(new Date().getTime() / 1000) - 10000),
       ).to.be.revertedWith("Invalid maturity date");
     });
 
@@ -110,36 +131,27 @@ describe("Bond Controller", () => {
       );
 
       const bondImplementation = <BondController>await deploy("BondController", signers[0], []);
-      const bondFactory = <BondFactory>await deploy("BondFactory", signers[0], [bondImplementation.address]);
+      const bondFactory = <BondFactory>(
+        await deploy("BondFactory", signers[0], [bondImplementation.address, trancheFactory.address])
+      );
 
       const mockCollateralToken = <MockERC20>await deploy("MockERC20", signers[0], ["Mock ERC20", "MOCK"]);
       await expect(
-        bondFactory
-          .connect(signers[0])
-          .createBond(trancheFactory.address, mockCollateralToken.address, [], new Date().getTime() + 10000),
+        bondFactory.connect(signers[0]).createBond(mockCollateralToken.address, [], new Date().getTime() + 10000),
       ).to.be.revertedWith("Invalid total tranche ratios");
 
       await expect(
-        bondFactory
-          .connect(signers[0])
-          .createBond(trancheFactory.address, mockCollateralToken.address, [10, 20], new Date().getTime() + 10000),
+        bondFactory.connect(signers[0]).createBond(mockCollateralToken.address, [10, 20], new Date().getTime() + 10000),
       ).to.be.revertedWith("Invalid total tranche ratios");
 
       await expect(
-        bondFactory
-          .connect(signers[0])
-          .createBond(trancheFactory.address, mockCollateralToken.address, [1005], new Date().getTime() + 10000),
+        bondFactory.connect(signers[0]).createBond(mockCollateralToken.address, [1005], new Date().getTime() + 10000),
       ).to.be.revertedWith("Invalid tranche ratio");
 
       await expect(
         bondFactory
           .connect(signers[0])
-          .createBond(
-            trancheFactory.address,
-            mockCollateralToken.address,
-            [400, 500, 900],
-            new Date().getTime() + 10000,
-          ),
+          .createBond(mockCollateralToken.address, [400, 500, 900], new Date().getTime() + 10000),
       ).to.be.revertedWith("Invalid total tranche ratios");
     });
   });
