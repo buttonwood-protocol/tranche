@@ -184,17 +184,17 @@ describe("Bond Controller", () => {
       const maturityDate = await time.secondsFromNow(10000);
       const tx = await bondFactory
         .connect(signers[0])
-        .createBond(mockCollateralToken.address, [100, 200, 200, 500], maturityDate);
+        .createBond(mockCollateralToken.address, [200, 300, 500], maturityDate);
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("1107559");
+      expect(gasUsed.toString()).to.equal("880952");
     });
   });
 
   describe("Deposit", function () {
     it("should successfully deposit collateral and mint tranche tokens", async () => {
-      const trancheValues = [100, 200, 200, 500];
+      const trancheValues = [200, 300, 500];
       const { bond, tranches, mockCollateralToken, user } = await setupTestContext(trancheValues);
 
       const amount = parse("1000");
@@ -326,7 +326,7 @@ describe("Bond Controller", () => {
     });
 
     it("gas [ @skip-on-coverage ]", async () => {
-      const trancheValues = [100, 200, 200, 500];
+      const trancheValues = [200, 300, 500];
       const { bond, mockCollateralToken, user } = await setupTestContext(trancheValues);
 
       const amount = parse("1000");
@@ -336,7 +336,7 @@ describe("Bond Controller", () => {
       const tx = await bond.connect(user).deposit(amount);
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("259697");
+      expect(gasUsed.toString()).to.equal("209881");
     });
   });
 
