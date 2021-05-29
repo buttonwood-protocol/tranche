@@ -212,5 +212,15 @@ describe("Tranche Token", () => {
         }`,
       );
     });
+
+    it("should fail to redeem tokens with overflow", async () => {
+      const { mockCollateralToken, tranche, user, other } = await setupTestContext();
+      const amount = hre.ethers.constants.MaxUint256;
+      await tranche.connect(user).mint(await other.getAddress(), amount);
+      await mockCollateralToken.mint(tranche.address, amount);
+
+      await expect(tranche.connect(user).redeem(await other.getAddress(), await other.getAddress(), amount)).to.be
+        .reverted;
+    });
   });
 });

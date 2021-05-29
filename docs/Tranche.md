@@ -6,9 +6,9 @@ ERC20 token to represent a single tranche for a ButtonTranche bond
 
 Constructor for Tranche ERC20 token
 
-### `init(string name, string symbol, address _collateralToken)` (public)
+### `init(string name, string symbol, address admin, address _collateralToken)` (public)
 
-Constructor for Tranche ERC@0 token
+Constructor for Tranche ERC20 token
 
 ### `mint(address to, uint256 amount)` (external)
 
