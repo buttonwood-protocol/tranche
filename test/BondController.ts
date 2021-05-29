@@ -272,13 +272,13 @@ describe("Bond Controller", () => {
       for (let i = 0; i < tranches.length; i++) {
         const tranche = tranches[i];
         const trancheValue = parse(trancheValues[i].toString());
-        expect(await tranche.totalSupply()).to.equal(trancheValue.mul(3));
-        expect(await tranche.balanceOf(await other.getAddress())).to.equal(trancheValue.mul(2));
+        expect(await tranche.totalSupply()).to.equal(trancheValue.div(2).mul(3));
+        expect(await tranche.balanceOf(await other.getAddress())).to.equal(trancheValue.div(2));
       }
 
       expect(await mockCollateralToken.balanceOf(await other.getAddress())).to.equal(0);
       expect(await mockCollateralToken.balanceOf(bond.address)).to.equal(amount.mul(4));
-      expect(await bond.totalDebt()).to.equal(amount.mul(3));
+      expect(await bond.totalDebt()).to.equal(amount.div(2).mul(3));
     });
 
     it("should successfully deposit collateral with negative CD ratio", async () => {
@@ -303,14 +303,14 @@ describe("Bond Controller", () => {
 
       for (let i = 0; i < tranches.length; i++) {
         const tranche = tranches[i];
-        const trancheValue = parse(trancheValues[i].toString()).div(2);
+        const trancheValue = parse(trancheValues[i].toString());
         expect(await tranche.totalSupply()).to.equal(trancheValue.mul(3));
-        expect(await tranche.balanceOf(await other.getAddress())).to.equal(trancheValue);
+        expect(await tranche.balanceOf(await other.getAddress())).to.equal(trancheValue.mul(2));
       }
 
       expect(await mockCollateralToken.balanceOf(await other.getAddress())).to.equal(0);
       expect(await mockCollateralToken.balanceOf(bond.address)).to.equal(amount);
-      expect(await bond.totalDebt()).to.equal(amount.div(2).mul(3));
+      expect(await bond.totalDebt()).to.equal(amount.mul(3));
     });
 
     it("should fail to deposit collateral if not approved", async () => {

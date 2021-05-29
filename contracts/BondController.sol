@@ -76,9 +76,9 @@ contract BondController is IBondController, Initializable, AccessControl {
             // NOTE: solidity 0.8 checks for over/underflow natively so no need for SafeMath
             uint256 trancheValue = (amount * _tranches[i].ratio) / TRANCHE_RATIO_GRANULARITY;
 
-            // if there is any collateral, we should scale by the collateral:debt ratio
+            // if there is any collateral, we should scale by the debt:collateral ratio
             if (collateralBalance > 0) {
-                trancheValue = (trancheValue * collateralBalance) / totalDebt;
+                trancheValue = (trancheValue * totalDebt) / collateralBalance;
             }
             newDebt += trancheValue;
 
