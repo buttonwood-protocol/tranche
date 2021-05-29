@@ -150,7 +150,10 @@ contract BondController is IBondController, Initializable, AccessControl {
         }
 
         for (uint256 i = 0; i < amounts.length; i++) {
-            require((amounts[i] * 1000) / total == _tranches[i].ratio, "BondController: Invalid redemption ratio");
+            require(
+                (amounts[i] * TRANCHE_RATIO_GRANULARITY) / total == _tranches[i].ratio,
+                "BondController: Invalid redemption ratio"
+            );
             _tranches[i].token.burn(_msgSender(), amounts[i]);
         }
 
