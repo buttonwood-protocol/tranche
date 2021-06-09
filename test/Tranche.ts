@@ -3,7 +3,7 @@ import hre from "hardhat";
 import { BigNumber, Signer } from "ethers";
 import { deploy } from "./utils/contracts";
 
-import { MockERC20, Tranche, TrancheFactory } from "../typechain";
+import { MockERC20, MockERC20CustomDecimals, Tranche, TrancheFactory } from "../typechain";
 
 interface TestContext {
   tranche: Tranche;
@@ -17,13 +17,15 @@ describe("Tranche Token", () => {
   /**
    * Sets up a test context, deploying new contracts and returning them for use in a test
    */
-  const setupTestContext = async (): Promise<TestContext> => {
+  const setupTestContext = async (collateralTokenDecimals: number = 18): Promise<TestContext> => {
     const signers: Signer[] = await hre.ethers.getSigners();
 
     const trancheImplementation = <Tranche>await deploy("Tranche", signers[0], []);
     const trancheFactory = <TrancheFactory>await deploy("TrancheFactory", signers[0], [trancheImplementation.address]);
 
-    const mockCollateralToken = <MockERC20>await deploy("MockERC20", signers[0], ["Mock ERC20", "MOCK"]);
+    const mockCollateralToken = <MockERC20CustomDecimals>(
+      await deploy("MockERC20CustomDecimals", signers[0], ["Mock ERC20", "MOCK", collateralTokenDecimals])
+    );
     const tx = await trancheFactory
       .connect(signers[0])
       .createTranche("Tranche", "TRANCHE", mockCollateralToken.address);
@@ -45,6 +47,18 @@ describe("Tranche Token", () => {
       expect(await tranche.collateralToken()).to.equal(mockCollateralToken.address);
       expect(await tranche.name()).to.equal("Tranche");
       expect(await tranche.symbol()).to.equal("TRANCHE");
+      expect(await tranche.decimals()).to.equal(18);
+      // ensure user has admin permissions
+      expect(await tranche.hasRole(hre.ethers.constants.HashZero, await user.getAddress())).to.be.true;
+    });
+
+    it("should take the number of decimals from the collateral token", async () => {
+      const { tranche, user, mockCollateralToken } = await setupTestContext(8);
+
+      expect(await tranche.collateralToken()).to.equal(mockCollateralToken.address);
+      expect(await tranche.name()).to.equal("Tranche");
+      expect(await tranche.symbol()).to.equal("TRANCHE");
+      expect(await tranche.decimals()).to.equal(8);
       // ensure user has admin permissions
       expect(await tranche.hasRole(hre.ethers.constants.HashZero, await user.getAddress())).to.be.true;
     });
