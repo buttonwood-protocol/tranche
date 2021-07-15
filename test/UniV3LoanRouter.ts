@@ -119,6 +119,20 @@ describe("Uniswap V3 Loan Router", () => {
       ).to.be.true;
     });
 
+    it("should fetch amountOut from a static call", async () => {
+      const { router, mockCollateralToken, mockCashToken, bond, user } = await setupTestContext();
+      const amount = hre.ethers.utils.parseEther("100");
+      await mockCollateralToken.connect(user).mint(await user.getAddress(), amount);
+      await mockCollateralToken.connect(user).approve(router.address, amount);
+
+      // min output of 50 because the router will sell all A (20) and B (30) tranche tokens, but keep the Z tranches
+      const minOutput = hre.ethers.utils.parseEther("50");
+      const amountOut = await router
+        .connect(user)
+        .callStatic.borrowMax(amount, bond.address, mockCashToken.address, minOutput);
+      expect(minOutput).to.equal(amountOut);
+    });
+
     it("should fail if not approved", async () => {
       const { router, mockCollateralToken, mockCashToken, bond, user } = await setupTestContext();
       const amount = hre.ethers.utils.parseEther("100");
@@ -196,6 +210,27 @@ describe("Uniswap V3 Loan Router", () => {
         const tranche = tranches[i];
         expect((await tranche.balanceOf(await user.getAddress())).eq(expected[i])).to.be.true;
       }
+    });
+
+    it("should fetch amountOut from a static call", async () => {
+      const { router, mockCollateralToken, mockCashToken, bond, user } = await setupTestContext();
+      const amount = hre.ethers.utils.parseEther("100");
+      await mockCollateralToken.connect(user).mint(await user.getAddress(), amount);
+      await mockCollateralToken.connect(user).approve(router.address, amount);
+
+      // min output of 50 because the router will sell all A (20) and B (30) tranche tokens, but keep the Z tranches
+      const minOutput = hre.ethers.utils.parseEther("30");
+      const amountOut = await router
+        .connect(user)
+        .callStatic.borrow(
+          amount,
+          bond.address,
+          mockCashToken.address,
+          [hre.ethers.utils.parseEther("20"), hre.ethers.utils.parseEther("10"), 0],
+          minOutput,
+          { gasLimit: 9500000 },
+        );
+      expect(minOutput).to.equal(amountOut);
     });
 
     it("should fail if not approved", async () => {

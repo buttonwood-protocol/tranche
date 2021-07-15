@@ -1,6 +1,5 @@
 pragma solidity ^0.8.3;
 
-import "hardhat/console.sol";
 import "./interfaces/ILoanRouter.sol";
 import "./interfaces/IBondController.sol";
 import "./interfaces/ITranche.sol";
@@ -24,8 +23,8 @@ contract UniV3LoanRouter is ILoanRouter {
         IERC20 currency,
         uint256[] memory sales,
         uint256 minOutput
-    ) external override {
-        _borrow(amount, bond, currency, sales, minOutput);
+    ) external override returns (uint256 amountOut) {
+        return _borrow(amount, bond, currency, sales, minOutput);
     }
 
     /**
@@ -36,7 +35,7 @@ contract UniV3LoanRouter is ILoanRouter {
         IBondController bond,
         IERC20 currency,
         uint256 minOutput
-    ) external override {
+    ) external override returns (uint256 amountOut) {
         uint256 trancheCount = bond.trancheCount();
         uint256[] memory sales = new uint256[](trancheCount);
         // sell all tokens except the last one (Z token)
@@ -44,7 +43,7 @@ contract UniV3LoanRouter is ILoanRouter {
             sales[i] = MAX_UINT256;
         }
 
-        _borrow(amount, bond, currency, sales, minOutput);
+        return _borrow(amount, bond, currency, sales, minOutput);
     }
 
     /**
@@ -62,14 +61,16 @@ contract UniV3LoanRouter is ILoanRouter {
         IERC20 currency,
         uint256[] memory sales,
         uint256 minOutput
-    ) internal {
+    ) internal returns (uint256 amountOut) {
         IERC20 collateral = IERC20(bond.collateralToken());
+        require(address(collateral) != address(currency), "UniV3LoanRouter: Invalid currency");
+
         collateral.transferFrom(msg.sender, address(this), amount);
         collateral.approve(address(bond), amount);
         bond.deposit(amount);
 
         uint256 trancheCount = bond.trancheCount();
-        require(trancheCount == sales.length, "Invalid sales");
+        require(trancheCount == sales.length, "UniV3LoanRouter: Invalid sales");
         ITranche tranche;
         for (uint256 i = 0; i < trancheCount; i++) {
             (tranche, ) = bond.tranches(i);
@@ -104,5 +105,6 @@ contract UniV3LoanRouter is ILoanRouter {
         uint256 balance = currency.balanceOf(address(this));
         require(balance >= minOutput, "UniV3LoanRouter: Insufficient output");
         currency.transfer(msg.sender, balance);
+        return balance;
     }
 }

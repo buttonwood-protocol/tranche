@@ -13,12 +13,12 @@ interface ILoanRouter {
         IERC20 currency,
         uint256[] memory sales,
         uint256 minOutput
-    ) external;
+    ) external returns (uint256 amountOut);
 
     function borrowMax(
         uint256 amount,
         IBondController bond,
         IERC20 currency,
         uint256 minOutput
-    ) external;
+    ) external returns (uint256 amountOut);
 }
