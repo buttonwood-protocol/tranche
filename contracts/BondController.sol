@@ -19,8 +19,9 @@ import "./interfaces/ITranche.sol";
 contract BondController is IBondController, Initializable, AccessControl {
     uint256 private constant TRANCHE_RATIO_GRANULARITY = 1000;
 
-    address public collateralToken;
-    TrancheData[] public tranches;
+    address public override collateralToken;
+    TrancheData[] public override tranches;
+    uint256 public override trancheCount;
     mapping(address => bool) public trancheTokenAddresses;
     uint256 public maturityDate;
     bool public isMature;
@@ -43,9 +44,10 @@ contract BondController is IBondController, Initializable, AccessControl {
     ) external initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, _admin);
 
+        trancheCount = trancheRatios.length;
         collateralToken = _collateralToken;
-        uint256 totalRatio = 0;
 
+        uint256 totalRatio = 0;
         for (uint256 i = 0; i < trancheRatios.length; i++) {
             uint256 ratio = trancheRatios[i];
             require(ratio <= TRANCHE_RATIO_GRANULARITY, "BondController: Invalid tranche ratio");

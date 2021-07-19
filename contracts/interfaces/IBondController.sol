@@ -20,6 +20,12 @@ interface IBondController {
     event RedeemMature(address user, address tranche, uint256 amount);
     event Redeem(address user, uint256[] amounts);
 
+    function collateralToken() external view returns (address);
+
+    function tranches(uint256 i) external view returns (ITranche token, uint256 ratio);
+
+    function trancheCount() external view returns (uint256 count);
+
     /**
      * @dev Deposit `amount` tokens from `msg.sender`, get tranche tokens in return
      * Requirements:
