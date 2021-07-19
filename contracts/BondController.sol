@@ -71,6 +71,7 @@ contract BondController is IBondController, Initializable, AccessControl {
      * @inheritdoc IBondController
      */
     function deposit(uint256 amount) external override {
+        require(amount > 0, "BondController: invalid amount");
         uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(this));
         TransferHelper.safeTransferFrom(collateralToken, _msgSender(), address(this), amount);
 
