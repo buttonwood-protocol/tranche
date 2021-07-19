@@ -7,6 +7,7 @@ import { MockERC20, MockERC20CustomDecimals, Tranche, TrancheFactory } from "../
 
 interface TestContext {
   tranche: Tranche;
+  trancheFactory: TrancheFactory;
   mockCollateralToken: MockERC20;
   user: Signer;
   other: Signer;
@@ -38,7 +39,14 @@ describe("Tranche Token", () => {
       throw new Error("Unable to create new tranche");
     }
 
-    return { tranche, mockCollateralToken, user: signers[0], other: signers[1], signers: signers.slice(2) };
+    return {
+      tranche,
+      trancheFactory,
+      mockCollateralToken,
+      user: signers[0],
+      other: signers[1],
+      signers: signers.slice(2),
+    };
   };
 
   describe("Initialization", function () {
@@ -50,6 +58,13 @@ describe("Tranche Token", () => {
       expect(await tranche.decimals()).to.equal(18);
       // ensure user has admin permissions
       expect(await tranche.hasRole(hre.ethers.constants.HashZero, await user.getAddress())).to.be.true;
+    });
+
+    it("should fail to initialize with zero address collateralToken", async () => {
+      const { trancheFactory, user } = await setupTestContext();
+      await expect(
+        trancheFactory.connect(user).createTranche("Tranche", "TRANCHE", hre.ethers.constants.AddressZero),
+      ).to.be.revertedWith("Tranche: invalid collateralToken address");
     });
 
     it("should take the number of decimals from the collateral token", async () => {
