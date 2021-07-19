@@ -47,7 +47,7 @@ contract BondController is IBondController, Initializable, AccessControl {
         trancheCount = trancheRatios.length;
         collateralToken = _collateralToken;
 
-        uint256 totalRatio = 0;
+        uint256 totalRatio;
         for (uint256 i = 0; i < trancheRatios.length; i++) {
             uint256 ratio = trancheRatios[i];
             require(ratio <= TRANCHE_RATIO_GRANULARITY, "BondController: Invalid tranche ratio");
@@ -73,7 +73,7 @@ contract BondController is IBondController, Initializable, AccessControl {
 
         TrancheData[] memory _tranches = tranches;
 
-        uint256 newDebt = 0;
+        uint256 newDebt;
         for (uint256 i = 0; i < _tranches.length; i++) {
             // NOTE: solidity 0.8 checks for over/underflow natively so no need for SafeMath
             uint256 trancheValue = (amount * _tranches[i].ratio) / TRANCHE_RATIO_GRANULARITY;
@@ -145,7 +145,7 @@ contract BondController is IBondController, Initializable, AccessControl {
 
         TrancheData[] memory _tranches = tranches;
         require(amounts.length == _tranches.length, "BondController: Invalid redeem amounts");
-        uint256 total = 0;
+        uint256 total;
 
         for (uint256 i = 0; i < amounts.length; i++) {
             total += amounts[i];
