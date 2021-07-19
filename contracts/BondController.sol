@@ -103,6 +103,7 @@ contract BondController is IBondController, Initializable, AccessControl {
             hasRole(DEFAULT_ADMIN_ROLE, _msgSender()) || maturityDate < block.timestamp,
             "BondController: Invalid call to mature"
         );
+        isMature = true;
 
         TrancheData[] memory _tranches = tranches;
         uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(this));
@@ -124,7 +125,6 @@ contract BondController is IBondController, Initializable, AccessControl {
             );
         }
 
-        isMature = true;
         emit Mature(_msgSender());
     }
 
