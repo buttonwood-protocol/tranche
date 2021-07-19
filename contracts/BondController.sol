@@ -42,6 +42,9 @@ contract BondController is IBondController, Initializable, AccessControl {
         uint256[] memory trancheRatios,
         uint256 _maturityDate
     ) external initializer {
+        require(_trancheFactory != address(0), "Bondcontroller: invalid trancheFactory address");
+        require(_collateralToken != address(0), "Bondcontroller: invalid collateralToken address");
+        require(_admin != address(0), "Bondcontroller: invalid admin address");
         _setupRole(DEFAULT_ADMIN_ROLE, _admin);
 
         trancheCount = trancheRatios.length;
