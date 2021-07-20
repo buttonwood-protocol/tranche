@@ -35,6 +35,8 @@ contract Tranche is ITranche, ERC20, Initializable, AccessControl {
         address admin,
         address _collateralToken
     ) public initializer {
+        require(admin != address(0), "Tranche: invalid admin address");
+        require(_collateralToken != address(0), "Tranche: invalid collateralToken address");
         super.init(name, symbol);
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
         collateralToken = _collateralToken;

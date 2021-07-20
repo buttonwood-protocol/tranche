@@ -11,8 +11,8 @@ import "./BondController.sol";
 contract BondFactory is IBondFactory, Context {
     bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
 
-    address public target;
-    address public trancheFactory;
+    address public immutable target;
+    address public immutable trancheFactory;
     mapping(bytes32 => address) public bonds;
 
     constructor(address _target, address _trancheFactory) {

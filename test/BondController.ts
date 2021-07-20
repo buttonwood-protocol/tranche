@@ -10,6 +10,7 @@ const parse = hre.ethers.utils.parseEther;
 
 interface TestContext {
   bond: BondController;
+  bondFactory: BondFactory;
   tranches: Tranche[];
   mockCollateralToken: MockERC20;
   user: Signer;
@@ -64,6 +65,7 @@ describe("Bond Controller", () => {
 
     return {
       bond,
+      bondFactory,
       mockCollateralToken,
       tranches: trancheContracts,
       user,
@@ -85,6 +87,16 @@ describe("Bond Controller", () => {
         expect(await tranche.collateralToken()).to.equal(mockCollateralToken.address);
         expect(await tranche.hasRole(hre.ethers.constants.HashZero, bond.address)).to.be.true;
       }
+    });
+
+    it("should fail with zero address collateralToken", async () => {
+      const tranches = [100, 200, 200, 500];
+      const { bondFactory, admin } = await setupTestContext(tranches);
+      await expect(
+        bondFactory
+          .connect(admin)
+          .createBond(hre.ethers.constants.AddressZero, tranches, await time.secondsFromNow(10000)),
+      ).to.be.revertedWith("BondController: invalid collateralToken address");
     });
 
     it("should fail if a bond has already been created", async () => {
@@ -188,7 +200,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("900961");
+      expect(gasUsed.toString()).to.equal("899550");
     });
   });
 
@@ -313,6 +325,17 @@ describe("Bond Controller", () => {
       expect(await bond.totalDebt()).to.equal(amount.mul(3));
     });
 
+    it("should fail to deposit 0 collateral", async () => {
+      const trancheValues = [100, 200, 200, 500];
+      const { bond, mockCollateralToken, user } = await setupTestContext(trancheValues);
+
+      const amount = parse("1000");
+      await mockCollateralToken.mint(await user.getAddress(), amount);
+      await mockCollateralToken.connect(user).approve(bond.address, amount);
+
+      await expect(bond.connect(user).deposit(0)).to.be.revertedWith("BondController: invalid amount");
+    });
+
     it("should fail to deposit collateral if not approved", async () => {
       const trancheValues = [100, 200, 200, 500];
       const { bond, mockCollateralToken, user } = await setupTestContext(trancheValues);
@@ -336,7 +359,7 @@ describe("Bond Controller", () => {
       const tx = await bond.connect(user).deposit(amount);
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("209881");
+      expect(gasUsed.toString()).to.equal("209912");
     });
   });
 
@@ -448,7 +471,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("174974");
+      expect(gasUsed.toString()).to.equal("174959");
     });
   });
 
@@ -512,7 +535,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("44161");
+      expect(gasUsed.toString()).to.equal("44155");
     });
   });
 

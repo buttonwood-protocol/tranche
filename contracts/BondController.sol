@@ -42,12 +42,15 @@ contract BondController is IBondController, Initializable, AccessControl {
         uint256[] memory trancheRatios,
         uint256 _maturityDate
     ) external initializer {
+        require(_trancheFactory != address(0), "BondController: invalid trancheFactory address");
+        require(_collateralToken != address(0), "BondController: invalid collateralToken address");
+        require(_admin != address(0), "BondController: invalid admin address");
         _setupRole(DEFAULT_ADMIN_ROLE, _admin);
 
         trancheCount = trancheRatios.length;
         collateralToken = _collateralToken;
 
-        uint256 totalRatio = 0;
+        uint256 totalRatio;
         for (uint256 i = 0; i < trancheRatios.length; i++) {
             uint256 ratio = trancheRatios[i];
             require(ratio <= TRANCHE_RATIO_GRANULARITY, "BondController: Invalid tranche ratio");
@@ -68,12 +71,13 @@ contract BondController is IBondController, Initializable, AccessControl {
      * @inheritdoc IBondController
      */
     function deposit(uint256 amount) external override {
+        require(amount > 0, "BondController: invalid amount");
         uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(this));
         TransferHelper.safeTransferFrom(collateralToken, _msgSender(), address(this), amount);
 
         TrancheData[] memory _tranches = tranches;
 
-        uint256 newDebt = 0;
+        uint256 newDebt;
         for (uint256 i = 0; i < _tranches.length; i++) {
             // NOTE: solidity 0.8 checks for over/underflow natively so no need for SafeMath
             uint256 trancheValue = (amount * _tranches[i].ratio) / TRANCHE_RATIO_GRANULARITY;
@@ -100,6 +104,7 @@ contract BondController is IBondController, Initializable, AccessControl {
             hasRole(DEFAULT_ADMIN_ROLE, _msgSender()) || maturityDate < block.timestamp,
             "BondController: Invalid call to mature"
         );
+        isMature = true;
 
         TrancheData[] memory _tranches = tranches;
         uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(this));
@@ -121,7 +126,6 @@ contract BondController is IBondController, Initializable, AccessControl {
             );
         }
 
-        isMature = true;
         emit Mature(_msgSender());
     }
 
@@ -145,7 +149,7 @@ contract BondController is IBondController, Initializable, AccessControl {
 
         TrancheData[] memory _tranches = tranches;
         require(amounts.length == _tranches.length, "BondController: Invalid redeem amounts");
-        uint256 total = 0;
+        uint256 total;
 
         for (uint256 i = 0; i < amounts.length; i++) {
             total += amounts[i];
