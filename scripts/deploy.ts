@@ -1,22 +1,31 @@
-import { Contract, ContractFactory } from "ethers";
-// We require the Hardhat Runtime Environment explicitly here. This is optional
-// but useful for running the script in a standalone fashion through `node <script>`.
-// When running the script with `hardhat run <script>` you'll find the Hardhat
-// Runtime Environment's members available in the global scope.
 import { ethers } from "hardhat";
 
 async function main(): Promise<void> {
-  // Hardhat always runs the compile task when running scripts through it.
-  // If this runs in a standalone fashion you may want to call compile manually
-  // to make sure everything is compiled
-  // await run("compile");
+  const BondController = await ethers.getContractFactory("BondController");
+  const bondController = await BondController.deploy();
+  await bondController.deployed();
+  console.log("Bond controller implementation", bondController.address);
 
-  // We get the contract to deploy
-  const Greeter: ContractFactory = await ethers.getContractFactory("Greeter");
-  const greeter: Contract = await Greeter.deploy("Hello, Buidler!");
-  await greeter.deployed();
+  const Tranche = await ethers.getContractFactory("Tranche");
+  const tranche = await Tranche.deploy();
+  await tranche.deployed();
+  console.log("Tranche implementation", tranche.address);
 
-  console.log("Greeter deployed to: ", greeter.address);
+  const TrancheFactory = await ethers.getContractFactory("TrancheFactory");
+  const trancheFactory = await TrancheFactory.deploy(tranche.address);
+  await trancheFactory.deployed();
+  console.log("Tranche Factory", trancheFactory.address);
+
+  const BondFactory = await ethers.getContractFactory("BondFactory");
+  const bondFactory = await BondFactory.deploy(bondController.address, trancheFactory.address);
+  await bondFactory.deployed();
+  console.log("Bond Factory", bondFactory.address);
+
+  const Router = await ethers.getContractFactory("UniV3LoanRouter");
+  const router = await Router.deploy("0xe592427a0aece92de3edee1f18e0157c05861564");
+  await router.deployed();
+
+  console.log("Router deployed to: ", router.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
