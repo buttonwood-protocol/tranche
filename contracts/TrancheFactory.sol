@@ -11,7 +11,7 @@ import "./interfaces/ITrancheFactory.sol";
 contract TrancheFactory is ITrancheFactory, Context {
     bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
 
-    address public target;
+    address public immutable target;
 
     constructor(address _target) {
         target = _target;
