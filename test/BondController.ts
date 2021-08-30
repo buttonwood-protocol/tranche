@@ -336,6 +336,29 @@ describe("Bond Controller", () => {
       await expect(bond.connect(user).deposit(0)).to.be.revertedWith("BondController: invalid amount");
     });
 
+    it("should fail to deposit small collateral amount for first deposit", async () => {
+      const trancheValues = [100, 200, 200, 500];
+      const { bond, mockCollateralToken, user } = await setupTestContext(trancheValues);
+
+      const amount = parse("1000");
+      await mockCollateralToken.mint(await user.getAddress(), amount);
+      await mockCollateralToken.connect(user).approve(bond.address, amount);
+
+      await expect(bond.connect(user).deposit(100)).to.be.revertedWith("BondController: invalid initial amount");
+    });
+
+    it("should allow to deposit small collateral amount for second deposit", async () => {
+      const trancheValues = [100, 200, 200, 500];
+      const { bond, mockCollateralToken, user } = await setupTestContext(trancheValues);
+
+      const amount = parse("1000");
+      await mockCollateralToken.mint(await user.getAddress(), amount);
+      await mockCollateralToken.connect(user).approve(bond.address, amount);
+
+      await expect(bond.connect(user).deposit(parse('1'))).to.not.be.reverted;
+      await expect(bond.connect(user).deposit(100)).to.not.be.reverted;
+    });
+
     it("should fail to deposit collateral if not approved", async () => {
       const trancheValues = [100, 200, 200, 500];
       const { bond, mockCollateralToken, user } = await setupTestContext(trancheValues);
