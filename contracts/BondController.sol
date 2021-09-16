@@ -18,6 +18,9 @@ import "./interfaces/ITranche.sol";
  */
 contract BondController is IBondController, Initializable, AccessControl {
     uint256 private constant TRANCHE_RATIO_GRANULARITY = 1000;
+    // to avoid precision loss and other weird math from a small initial deposit
+    // we require at least a minimum initial deposit
+    uint256 private constant MINIMUM_FIRST_DEPOSIT = 10e9;
 
     address public override collateralToken;
     TrancheData[] public override tranches;
@@ -72,6 +75,7 @@ contract BondController is IBondController, Initializable, AccessControl {
      */
     function deposit(uint256 amount) external override {
         require(amount > 0, "BondController: invalid amount");
+        require(totalDebt > 0 || amount >= MINIMUM_FIRST_DEPOSIT, "BondController: invalid initial amount");
         uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(this));
         TransferHelper.safeTransferFrom(collateralToken, _msgSender(), address(this), amount);
 

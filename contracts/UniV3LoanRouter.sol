@@ -5,6 +5,7 @@ import "./interfaces/IBondController.sol";
 import "./interfaces/ITranche.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract UniV3LoanRouter is ILoanRouter {
     uint256 public constant MAX_UINT256 = 2**256 - 1;
@@ -65,7 +66,7 @@ contract UniV3LoanRouter is ILoanRouter {
         IERC20 collateral = IERC20(bond.collateralToken());
         require(address(collateral) != address(currency), "UniV3LoanRouter: Invalid currency");
 
-        collateral.transferFrom(msg.sender, address(this), amount);
+        SafeERC20.safeTransferFrom(collateral, msg.sender, address(this), amount);
         collateral.approve(address(bond), amount);
         bond.deposit(amount);
 
@@ -80,11 +81,11 @@ contract UniV3LoanRouter is ILoanRouter {
             if (sale == MAX_UINT256) {
                 sale = trancheBalance;
             } else if (sale == 0) {
-                tranche.transfer(msg.sender, trancheBalance);
+                SafeERC20.safeTransfer(tranche, msg.sender, trancheBalance);
                 continue;
             } else {
                 // transfer any excess to the caller
-                tranche.transfer(msg.sender, trancheBalance - sale);
+                SafeERC20.safeTransfer(tranche, msg.sender, trancheBalance - sale);
             }
 
             tranche.approve(address(uniswapV3Router), sale);
@@ -104,7 +105,7 @@ contract UniV3LoanRouter is ILoanRouter {
 
         uint256 balance = currency.balanceOf(address(this));
         require(balance >= minOutput, "UniV3LoanRouter: Insufficient output");
-        currency.transfer(msg.sender, balance);
+        SafeERC20.safeTransfer(currency, msg.sender, balance);
         return balance;
     }
 }
