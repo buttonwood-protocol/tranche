@@ -4,6 +4,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 import "./interfaces/IBondController.sol";
@@ -52,6 +53,7 @@ contract BondController is IBondController, Initializable, AccessControl {
 
         trancheCount = trancheRatios.length;
         collateralToken = _collateralToken;
+        string memory collateralSymbol = IERC20Metadata(collateralToken).symbol();
 
         uint256 totalRatio;
         for (uint256 i = 0; i < trancheRatios.length; i++) {
@@ -60,7 +62,11 @@ contract BondController is IBondController, Initializable, AccessControl {
             totalRatio += ratio;
 
             address trancheTokenAddress =
-                ITrancheFactory(_trancheFactory).createTranche("ButtonTranche token", "TRANCHE", _collateralToken);
+                ITrancheFactory(_trancheFactory).createTranche(
+                    getTrancheName(collateralSymbol, i, trancheRatios.length),
+                    getTrancheSymbol(collateralSymbol, i, trancheRatios.length),
+                    _collateralToken
+                );
             tranches.push(TrancheData(ITranche(trancheTokenAddress), ratio));
             trancheTokenAddresses[trancheTokenAddress] = true;
         }
@@ -174,5 +180,53 @@ contract BondController is IBondController, Initializable, AccessControl {
         TransferHelper.safeTransfer(collateralToken, _msgSender(), returnAmount);
 
         emit Redeem(_msgSender(), amounts);
+    }
+
+    /**
+     * @dev Get the string name for a tranche
+     * @param collateralSymbol the symbol of the collateral token
+     * @param index the tranche index
+     * @param _trancheCount the total number of tranches
+     * @return the string name of the tranche
+     */
+    function getTrancheName(
+        string memory collateralSymbol,
+        uint256 index,
+        uint256 _trancheCount
+    ) internal pure returns (string memory) {
+        return
+            string(abi.encodePacked("ButtonTranche ", collateralSymbol, " ", getTrancheLetter(index, _trancheCount)));
+    }
+
+    /**
+     * @dev Get the string symbol for a tranche
+     * @param collateralSymbol the symbol of the collateral token
+     * @param index the tranche index
+     * @param _trancheCount the total number of tranches
+     * @return the string symbol of the tranche
+     */
+    function getTrancheSymbol(
+        string memory collateralSymbol,
+        uint256 index,
+        uint256 _trancheCount
+    ) internal pure returns (string memory) {
+        return string(abi.encodePacked("TRANCHE-", collateralSymbol, "-", getTrancheLetter(index, _trancheCount)));
+    }
+
+    /**
+     * @dev Get the string letter for a tranche index
+     * @param index the tranche index
+     * @param _trancheCount the total number of tranches
+     * @return the string letter of the tranche index
+     */
+    function getTrancheLetter(uint256 index, uint256 _trancheCount) internal pure returns (string memory) {
+        bytes memory trancheLetters = bytes("ABCDEFGHIJKLMNOPQRSTUVWXY");
+        bytes memory target = new bytes(1);
+        if (index == _trancheCount - 1) {
+            target[0] = "Z";
+        } else {
+            target[0] = trancheLetters[index];
+        }
+        return string(target);
     }
 }
