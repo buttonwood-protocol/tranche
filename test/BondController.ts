@@ -7,6 +7,7 @@ import { ZERO_ADDRESS } from "./utils/erc20";
 
 import { BondController, BondFactory, MockERC20, Tranche, TrancheFactory } from "../typechain";
 const parse = hre.ethers.utils.parseEther;
+const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 interface TestContext {
   bond: BondController;
@@ -83,9 +84,13 @@ describe("Bond Controller", () => {
       expect(await bond.hasRole(hre.ethers.constants.HashZero, await admin.getAddress())).to.be.true;
       expect(await bond.totalDebt()).to.equal(0);
       expect(await bond.isMature()).to.be.false;
-      for (const tranche of tranches) {
+      for (let i = 0; i < tranches.length; i++) {
+        const tranche = tranches[i];
+        const letter = i === tranches.length - 1 ? "Z" : LETTERS[i];
         expect(await tranche.collateralToken()).to.equal(mockCollateralToken.address);
         expect(await tranche.hasRole(hre.ethers.constants.HashZero, bond.address)).to.be.true;
+        expect(await tranche.symbol()).to.equal(`TRANCHE-${await mockCollateralToken.symbol()}-${letter}`);
+        expect(await tranche.name()).to.equal(`ButtonTranche ${await mockCollateralToken.symbol()} ${letter}`);
       }
     });
 
@@ -200,7 +205,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("897114");
+      expect(gasUsed.toString()).to.equal("910463");
     });
   });
 
@@ -675,7 +680,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("66739");
+      expect(gasUsed.toString()).to.equal("66757");
     });
   });
 });
