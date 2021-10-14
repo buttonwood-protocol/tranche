@@ -2,6 +2,12 @@
 
 Controller for a ButtonTranche bond system
 
+### `collateralToken() → address` (external)
+
+### `tranches(uint256 i) → contract ITranche token, uint256 ratio` (external)
+
+### `trancheCount() → uint256 count` (external)
+
 ### `deposit(uint256 amount)` (external)
 
 Deposit `amount` tokens from `msg.sender`, get tranche tokens in return

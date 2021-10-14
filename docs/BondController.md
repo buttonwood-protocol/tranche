@@ -46,3 +46,15 @@ Requirements
 - The bond is not mature
 - The number of `amounts` is the same as the number of tranches
 - The `amounts` are in equivalent ratio to the tranche order
+
+### `getTrancheName(string collateralSymbol, uint256 index, uint256 _trancheCount) → string` (internal)
+
+Get the string name for a tranche
+
+### `getTrancheSymbol(string collateralSymbol, uint256 index, uint256 _trancheCount) → string` (internal)
+
+Get the string symbol for a tranche
+
+### `getTrancheLetter(uint256 index, uint256 _trancheCount) → string` (internal)
+
+Get the string letter for a tranche index
