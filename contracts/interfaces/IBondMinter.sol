@@ -1,3 +1,5 @@
+pragma solidity >=0.4;
+
 /**
  * @dev Interface for BondMinter
  */
