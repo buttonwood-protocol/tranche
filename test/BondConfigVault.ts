@@ -65,7 +65,7 @@ describe("BondConfigVault", () => {
         .to.emit(bondConfigVault, "BondConfigAdded")
         .withArgs(mockUnderlyingToken.address, [100,200,700], 100);
       expect(await bondConfigVault.numConfigs()).to.eq(1);
-      
+
       await expect(bondConfigVault.removeBondConfig(mockUnderlyingToken.address, [100,200,700], 100))
         .to.emit(bondConfigVault, "BondConfigRemoved")
         .withArgs(mockUnderlyingToken.address, [100,200,700], 100);

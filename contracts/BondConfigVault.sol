@@ -2,7 +2,7 @@ pragma solidity 0.8.3;
 
 import "./interfaces/IBondConfigVault.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 /**
  * @dev BonddConfigVault for storing BondConfigs
