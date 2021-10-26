@@ -3,8 +3,8 @@
  */
 interface IBondMinter {
     /**
-    * @dev Sets the waitingPeriod required between minting periods
-    */
+     * @dev Sets the waitingPeriod required between minting periods
+     */
     function setWaitingPeriod(uint256 _waitingPeriod) external;
 
     /**

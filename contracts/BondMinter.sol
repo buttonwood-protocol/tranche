@@ -21,8 +21,8 @@ contract BondMinter is IBondMinter, Ownable, BondConfigVault {
     }
 
     /**
-    * @dev Sets the waitingPeriod required between minting periods
-    */
+     * @dev Sets the waitingPeriod required between minting periods
+     */
     function setWaitingPeriod(uint256 _waitingPeriod) external override onlyOwner {
         waitingPeriod = _waitingPeriod;
     }
@@ -31,7 +31,10 @@ contract BondMinter is IBondMinter, Ownable, BondConfigVault {
      * @dev Iterates over configurations an mints bonds for each
      */
     function mintBonds() external override {
-        require(block.timestamp - lastMintTimestamp >= waitingPeriod, "Not enough time has passed since last mint timestamp.");
+        require(
+            block.timestamp - lastMintTimestamp >= waitingPeriod,
+            "Not enough time has passed since last mint timestamp."
+        );
         lastMintTimestamp = block.timestamp;
 
         for (uint256 i = 0; i < numConfigs(); i++) {
