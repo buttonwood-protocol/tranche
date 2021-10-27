@@ -6,7 +6,7 @@ import "./interfaces/IBondFactory.sol";
 import "./BondController.sol";
 
 /**
- * @dev Canonical Bond Minter interface
+ * @dev Factory for BondController minimal proxy contracts
  */
 contract BondFactory is IBondFactory, Context {
     bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;

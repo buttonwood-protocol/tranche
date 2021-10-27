@@ -1,9 +1,9 @@
-// import { expect } from "chai";
 import { ethers, waffle, artifacts } from "hardhat";
 import { Signer } from "ethers";
 import { deploy } from "./utils/contracts";
 import { BondMinter, MockERC20 } from "../contracts/typechain";
 import { expect } from "chai";
+import { BlockchainTime } from "./utils/time";
 import { MockContract } from "ethereum-waffle";
 
 const DAYS_29: number = 29 * 24 * 60 * 60;
@@ -18,6 +18,8 @@ interface TestContext {
   mockBondFactory: MockContract;
   mockUnderlyingToken: MockERC20;
 }
+
+const time = new BlockchainTime();
 
 describe("BondConfigVault", () => {
   const setupTestContext = async (): Promise<TestContext> => {
@@ -82,7 +84,7 @@ describe("BondConfigVault", () => {
         .withArgs(mockUnderlyingToken.address, [200, 300, 500], timestampAfter + 300)
         .returns("0x0000000000000000000000000000000000000002");
 
-      await ethers.provider.send("evm_setNextBlockTimestamp", [timestampAfter]);
+      await time.setNextBlockTimestamp(timestampAfter);
 
       await bondMinter.mintBonds();
     });
@@ -101,7 +103,7 @@ describe("BondConfigVault", () => {
         .withArgs(mockUnderlyingToken.address, [100, 200, 700], timestampAfter + 100)
         .returns("0x0000000000000000000000000000000000000001");
 
-      await ethers.provider.send("evm_setNextBlockTimestamp", [timestampAfter]);
+      await time.setNextBlockTimestamp(timestampAfter);
 
       await bondMinter.mintBonds();
 
@@ -109,7 +111,7 @@ describe("BondConfigVault", () => {
         .withArgs(mockUnderlyingToken.address, [100, 200, 700], timestampAfter + DAYS_30 + 100)
         .returns("0x0000000000000000000000000000000000000002");
 
-      await ethers.provider.send("evm_setNextBlockTimestamp", [timestampAfter + DAYS_30]);
+      await time.setNextBlockTimestamp(timestampAfter + DAYS_30);
 
       await bondMinter.mintBonds();
     });
@@ -128,7 +130,7 @@ describe("BondConfigVault", () => {
         .withArgs(mockUnderlyingToken.address, [100, 200, 700], timestampAfter + 100)
         .returns("0x0000000000000000000000000000000000000001");
 
-      await ethers.provider.send("evm_setNextBlockTimestamp", [timestampAfter]);
+      await time.setNextBlockTimestamp(timestampAfter);
 
       await bondMinter.mintBonds();
 
@@ -136,7 +138,7 @@ describe("BondConfigVault", () => {
         .withArgs(mockUnderlyingToken.address, [100, 200, 700], timestampAfter + DAYS_29 + 100)
         .returns("0x0000000000000000000000000000000000000002");
 
-      await ethers.provider.send("evm_setNextBlockTimestamp", [timestampAfter + DAYS_29]);
+      await time.setNextBlockTimestamp(timestampAfter + DAYS_29);
 
       await expect(bondMinter.mintBonds()).to.be.reverted;
     });

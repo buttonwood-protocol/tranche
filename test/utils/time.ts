@@ -1,4 +1,4 @@
-import hre from "hardhat";
+import hre, { ethers } from "hardhat";
 
 export class BlockchainTime {
   async secondsFromNow(secondsFromNow: number): Promise<number> {
@@ -10,5 +10,9 @@ export class BlockchainTime {
   async increaseTime(seconds: number): Promise<void> {
     await hre.network.provider.send("evm_increaseTime", [seconds]);
     await hre.network.provider.send("evm_mine");
+  }
+
+  async setNextBlockTimestamp(timestamp: number): Promise<void> {
+    await ethers.provider.send("evm_setNextBlockTimestamp", [timestamp]);
   }
 }

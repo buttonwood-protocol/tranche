@@ -1,7 +1,7 @@
 pragma solidity 0.8.3;
 
-import "./interfaces/IBondFactory.sol";
-import "./interfaces/IBondMinter.sol";
+import "../interfaces/IBondFactory.sol";
+import "../interfaces/IBondMinter.sol";
 import "./BondConfigVault.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -10,8 +10,8 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
  */
 
 contract BondMinter is IBondMinter, Ownable, BondConfigVault {
-    IBondFactory public immutable bondFactory;
-    uint256 private lastMintTimestamp;
+    IBondFactory public bondFactory;
+    uint256 public lastMintTimestamp;
     uint256 public waitingPeriod;
 
     constructor(IBondFactory _bondFactory, uint256 _waitingPeriod) {
@@ -20,16 +20,17 @@ contract BondMinter is IBondMinter, Ownable, BondConfigVault {
         waitingPeriod = _waitingPeriod;
     }
 
-    /**
-     * @dev Sets the waitingPeriod required between minting periods
-     */
+    /// @inheritdoc IBondMinter
+    function setBondFactory(IBondFactory _bondFactory) external override onlyOwner {
+        bondFactory = _bondFactory;
+    }
+
+    /// @inheritdoc IBondMinter
     function setWaitingPeriod(uint256 _waitingPeriod) external override onlyOwner {
         waitingPeriod = _waitingPeriod;
     }
 
-    /**
-     * @dev Iterates over configurations an mints bonds for each
-     */
+    /// @inheritdoc IBondMinter
     function mintBonds() external override {
         require(
             block.timestamp - lastMintTimestamp >= waitingPeriod,
