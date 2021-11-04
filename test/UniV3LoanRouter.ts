@@ -1,8 +1,9 @@
 import { expect } from "chai";
-import hre from "hardhat";
+import hre, { waffle } from "hardhat";
 import { Signer } from "ethers";
 import { BlockchainTime } from "./utils/time";
 import { deploy } from "./utils/contracts";
+const { loadFixture } = waffle;
 
 import {
   MockERC20,
@@ -31,7 +32,7 @@ describe("Uniswap V3 Loan Router", () => {
   /**
    * Sets up a test context, deploying new contracts and returning them for use in a test
    */
-  const setupTestContext = async (): Promise<TestContext> => {
+  const fixture = async (): Promise<TestContext> => {
     const signers: Signer[] = await hre.ethers.getSigners();
     const [user, other, admin] = signers;
 
@@ -91,7 +92,7 @@ describe("Uniswap V3 Loan Router", () => {
 
   describe("borrowMax", function () {
     it("should successfully borrow max", async () => {
-      const { router, tranches, mockCollateralToken, mockCashToken, bond, user } = await setupTestContext();
+      const { router, tranches, mockCollateralToken, mockCashToken, bond, user } = await loadFixture(fixture);
       const amount = hre.ethers.utils.parseEther("100");
       await mockCollateralToken.connect(user).mint(await user.getAddress(), amount);
       await mockCollateralToken.connect(user).approve(router.address, amount);
@@ -120,7 +121,7 @@ describe("Uniswap V3 Loan Router", () => {
     });
 
     it("should fetch amountOut from a static call", async () => {
-      const { router, mockCollateralToken, mockCashToken, bond, user } = await setupTestContext();
+      const { router, mockCollateralToken, mockCashToken, bond, user } = await loadFixture(fixture);
       const amount = hre.ethers.utils.parseEther("100");
       await mockCollateralToken.connect(user).mint(await user.getAddress(), amount);
       await mockCollateralToken.connect(user).approve(router.address, amount);
@@ -134,7 +135,7 @@ describe("Uniswap V3 Loan Router", () => {
     });
 
     it("should fail if not approved", async () => {
-      const { router, mockCollateralToken, mockCashToken, bond, user } = await setupTestContext();
+      const { router, mockCollateralToken, mockCashToken, bond, user } = await loadFixture(fixture);
       const amount = hre.ethers.utils.parseEther("100");
       await mockCollateralToken.connect(user).mint(await user.getAddress(), amount);
 
@@ -147,7 +148,7 @@ describe("Uniswap V3 Loan Router", () => {
     });
 
     it("should fail if more than balance", async () => {
-      const { router, mockCollateralToken, mockCashToken, bond, user } = await setupTestContext();
+      const { router, mockCollateralToken, mockCashToken, bond, user } = await loadFixture(fixture);
       const amount = hre.ethers.utils.parseEther("100");
       await mockCollateralToken.connect(user).mint(await user.getAddress(), amount.div(2));
       await mockCollateralToken.connect(user).approve(router.address, amount);
@@ -161,7 +162,7 @@ describe("Uniswap V3 Loan Router", () => {
     });
 
     it("should fail if not enough input", async () => {
-      const { router, mockCollateralToken, mockCashToken, bond, user } = await setupTestContext();
+      const { router, mockCollateralToken, mockCashToken, bond, user } = await loadFixture(fixture);
       const amount = hre.ethers.utils.parseEther("80");
       await mockCollateralToken.connect(user).mint(await user.getAddress(), amount);
       await mockCollateralToken.connect(user).approve(router.address, amount);
@@ -177,7 +178,7 @@ describe("Uniswap V3 Loan Router", () => {
 
   describe("borrow", function () {
     it("should successfully borrow", async () => {
-      const { router, tranches, mockCollateralToken, mockCashToken, bond, user } = await setupTestContext();
+      const { router, tranches, mockCollateralToken, mockCashToken, bond, user } = await loadFixture(fixture);
       const amount = hre.ethers.utils.parseEther("100");
       await mockCollateralToken.connect(user).mint(await user.getAddress(), amount);
       await mockCollateralToken.connect(user).approve(router.address, amount);
@@ -213,7 +214,7 @@ describe("Uniswap V3 Loan Router", () => {
     });
 
     it("should fetch amountOut from a static call", async () => {
-      const { router, mockCollateralToken, mockCashToken, bond, user } = await setupTestContext();
+      const { router, mockCollateralToken, mockCashToken, bond, user } = await loadFixture(fixture);
       const amount = hre.ethers.utils.parseEther("100");
       await mockCollateralToken.connect(user).mint(await user.getAddress(), amount);
       await mockCollateralToken.connect(user).approve(router.address, amount);
@@ -234,7 +235,7 @@ describe("Uniswap V3 Loan Router", () => {
     });
 
     it("should fail if not approved", async () => {
-      const { router, mockCollateralToken, mockCashToken, bond, user } = await setupTestContext();
+      const { router, mockCollateralToken, mockCashToken, bond, user } = await loadFixture(fixture);
       const amount = hre.ethers.utils.parseEther("100");
       await mockCollateralToken.connect(user).mint(await user.getAddress(), amount);
 
@@ -255,7 +256,7 @@ describe("Uniswap V3 Loan Router", () => {
     });
 
     it("should fail if more than balance", async () => {
-      const { router, mockCollateralToken, mockCashToken, bond, user } = await setupTestContext();
+      const { router, mockCollateralToken, mockCashToken, bond, user } = await loadFixture(fixture);
       const amount = hre.ethers.utils.parseEther("100");
       await mockCollateralToken.connect(user).mint(await user.getAddress(), amount.div(2));
       await mockCollateralToken.connect(user).approve(router.address, amount);
@@ -277,7 +278,7 @@ describe("Uniswap V3 Loan Router", () => {
     });
 
     it("should fail if less than minOutput", async () => {
-      const { router, mockCollateralToken, mockCashToken, bond, user } = await setupTestContext();
+      const { router, mockCollateralToken, mockCashToken, bond, user } = await loadFixture(fixture);
       const amount = hre.ethers.utils.parseEther("100");
       await mockCollateralToken.connect(user).mint(await user.getAddress(), amount);
       await mockCollateralToken.connect(user).approve(router.address, amount);
@@ -299,7 +300,7 @@ describe("Uniswap V3 Loan Router", () => {
     });
 
     it("should fail if too many amounts", async () => {
-      const { router, mockCollateralToken, mockCashToken, bond, user } = await setupTestContext();
+      const { router, mockCollateralToken, mockCashToken, bond, user } = await loadFixture(fixture);
       const amount = hre.ethers.utils.parseEther("100");
       await mockCollateralToken.connect(user).mint(await user.getAddress(), amount);
       await mockCollateralToken.connect(user).approve(router.address, amount);
@@ -326,7 +327,7 @@ describe("Uniswap V3 Loan Router", () => {
     });
 
     it("should fail if not enough sales", async () => {
-      const { router, mockCollateralToken, mockCashToken, bond, user } = await setupTestContext();
+      const { router, mockCollateralToken, mockCashToken, bond, user } = await loadFixture(fixture);
       const amount = hre.ethers.utils.parseEther("100");
       await mockCollateralToken.connect(user).mint(await user.getAddress(), amount);
       await mockCollateralToken.connect(user).approve(router.address, amount);
@@ -348,7 +349,7 @@ describe("Uniswap V3 Loan Router", () => {
     });
 
     it("should fail if sale too high", async () => {
-      const { router, mockCollateralToken, mockCashToken, bond, user } = await setupTestContext();
+      const { router, mockCollateralToken, mockCashToken, bond, user } = await loadFixture(fixture);
       const amount = hre.ethers.utils.parseEther("100");
       await mockCollateralToken.connect(user).mint(await user.getAddress(), amount);
       await mockCollateralToken.connect(user).approve(router.address, amount);

@@ -1,7 +1,8 @@
 import { expect } from "chai";
-import hre from "hardhat";
+import hre, { waffle } from "hardhat";
 import { BigNumber, Signer } from "ethers";
 import { deploy } from "./utils/contracts";
+const { loadFixture } = waffle;
 
 import { MockERC20, MockERC20CustomDecimals, Tranche, TrancheFactory } from "../typechain";
 
@@ -49,9 +50,13 @@ describe("Tranche Token", () => {
     };
   };
 
+  const fixture = async () => {
+    return await setupTestContext(18);
+  };
+
   describe("Initialization", function () {
     it("should successfully initialize a tranche token", async () => {
-      const { tranche, mockCollateralToken, user } = await setupTestContext();
+      const { tranche, mockCollateralToken, user } = await loadFixture(fixture);
       expect(await tranche.collateralToken()).to.equal(mockCollateralToken.address);
       expect(await tranche.name()).to.equal("Tranche");
       expect(await tranche.symbol()).to.equal("TRANCHE");
@@ -61,14 +66,14 @@ describe("Tranche Token", () => {
     });
 
     it("should fail to initialize with zero address collateralToken", async () => {
-      const { trancheFactory, user } = await setupTestContext();
+      const { trancheFactory, user } = await loadFixture(fixture);
       await expect(
         trancheFactory.connect(user).createTranche("Tranche", "TRANCHE", hre.ethers.constants.AddressZero),
       ).to.be.revertedWith("Tranche: invalid collateralToken address");
     });
 
     it("should take the number of decimals from the collateral token", async () => {
-      const { tranche, user, mockCollateralToken } = await setupTestContext(8);
+      const { tranche, user, mockCollateralToken } = await loadFixture(async () => await setupTestContext(8));
 
       expect(await tranche.collateralToken()).to.equal(mockCollateralToken.address);
       expect(await tranche.name()).to.equal("Tranche");
@@ -81,7 +86,7 @@ describe("Tranche Token", () => {
 
   describe("Mint", function () {
     it("should successfully mint tokens", async () => {
-      const { tranche, user, other } = await setupTestContext();
+      const { tranche, user, other } = await loadFixture(fixture);
       const initialBalance = await tranche.balanceOf(await other.getAddress());
       const amount = hre.ethers.utils.parseEther("100");
 
@@ -94,7 +99,7 @@ describe("Tranche Token", () => {
     });
 
     it("should fail to mint tokens from non-owner", async () => {
-      const { tranche, other } = await setupTestContext();
+      const { tranche, other } = await loadFixture(fixture);
       const amount = hre.ethers.utils.parseEther("100");
 
       await expect(tranche.connect(other).mint(await other.getAddress(), amount)).to.be.revertedWith(
@@ -107,7 +112,7 @@ describe("Tranche Token", () => {
 
   describe("Burn", function () {
     it("should successfully burn tokens", async () => {
-      const { tranche, user, other } = await setupTestContext();
+      const { tranche, user, other } = await loadFixture(fixture);
       const amount = hre.ethers.utils.parseEther("100");
       await tranche.connect(user).mint(await other.getAddress(), amount);
       const initialBalance = await tranche.balanceOf(await other.getAddress());
@@ -121,7 +126,7 @@ describe("Tranche Token", () => {
     });
 
     it("should successfully burn full balance of tokens", async () => {
-      const { tranche, user, other } = await setupTestContext();
+      const { tranche, user, other } = await loadFixture(fixture);
       const amount = hre.ethers.utils.parseEther("100");
       await tranche.connect(user).mint(await other.getAddress(), amount);
 
@@ -135,7 +140,7 @@ describe("Tranche Token", () => {
     });
 
     it("should fail to burn more than balance", async () => {
-      const { tranche, user, other } = await setupTestContext();
+      const { tranche, user, other } = await loadFixture(fixture);
       const amount = hre.ethers.utils.parseEther("100");
       await tranche.connect(user).mint(await other.getAddress(), amount);
       const initialBalance = await tranche.balanceOf(await other.getAddress());
@@ -146,7 +151,7 @@ describe("Tranche Token", () => {
     });
 
     it("should fail to burn tokens from non-owner", async () => {
-      const { tranche, user, other } = await setupTestContext();
+      const { tranche, user, other } = await loadFixture(fixture);
       const amount = hre.ethers.utils.parseEther("100");
       await tranche.connect(user).mint(await other.getAddress(), amount);
 
@@ -160,7 +165,7 @@ describe("Tranche Token", () => {
 
   describe("Redeem", function () {
     it("should successfully redeem tokens", async () => {
-      const { tranche, mockCollateralToken, user, other } = await setupTestContext();
+      const { tranche, mockCollateralToken, user, other } = await loadFixture(fixture);
       const amount = hre.ethers.utils.parseEther("100");
       await tranche.connect(user).mint(await other.getAddress(), amount);
       await mockCollateralToken.mint(tranche.address, amount);
@@ -179,7 +184,7 @@ describe("Tranche Token", () => {
     });
 
     it("should successfully redeem full balance of tokens", async () => {
-      const { tranche, mockCollateralToken, user, other } = await setupTestContext();
+      const { tranche, mockCollateralToken, user, other } = await loadFixture(fixture);
       const amount = hre.ethers.utils.parseEther("100");
       await tranche.connect(user).mint(await other.getAddress(), amount);
       await mockCollateralToken.mint(tranche.address, amount);
@@ -198,7 +203,7 @@ describe("Tranche Token", () => {
     });
 
     it("should successfully redeem full balance of tokens with differing collateral balance", async () => {
-      const { tranche, mockCollateralToken, user, other } = await setupTestContext();
+      const { tranche, mockCollateralToken, user, other } = await loadFixture(fixture);
       const amount = hre.ethers.utils.parseEther("100");
       await tranche.connect(user).mint(await other.getAddress(), amount);
       await mockCollateralToken.mint(tranche.address, amount.mul(2));
@@ -217,7 +222,7 @@ describe("Tranche Token", () => {
     });
 
     it("should fail to redeem more than balance", async () => {
-      const { tranche, mockCollateralToken, user, other } = await setupTestContext();
+      const { tranche, mockCollateralToken, user, other } = await loadFixture(fixture);
       const amount = hre.ethers.utils.parseEther("100");
       await tranche.connect(user).mint(await other.getAddress(), amount);
       await mockCollateralToken.mint(tranche.address, amount.mul(2));
@@ -229,7 +234,7 @@ describe("Tranche Token", () => {
     });
 
     it("should fail to redeem tokens from non-owner", async () => {
-      const { tranche, user, other } = await setupTestContext();
+      const { tranche, user, other } = await loadFixture(fixture);
       const amount = hre.ethers.utils.parseEther("100");
       await tranche.connect(user).mint(await other.getAddress(), amount);
 
@@ -243,7 +248,7 @@ describe("Tranche Token", () => {
     });
 
     it("should fail to redeem tokens with overflow", async () => {
-      const { mockCollateralToken, tranche, user, other } = await setupTestContext();
+      const { mockCollateralToken, tranche, user, other } = await loadFixture(fixture);
       const amount = hre.ethers.constants.MaxUint256;
       await tranche.connect(user).mint(await other.getAddress(), amount);
       await mockCollateralToken.mint(tranche.address, amount);
