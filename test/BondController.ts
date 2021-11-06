@@ -1,9 +1,12 @@
 import { expect } from "chai";
-import hre from "hardhat";
+import hre, { waffle } from "hardhat";
 import { Signer } from "ethers";
+import * as _ from "lodash";
+import { Fixture } from "ethereum-waffle";
 import { deploy } from "./utils/contracts";
 import { BlockchainTime } from "./utils/time";
 import { ZERO_ADDRESS } from "./utils/erc20";
+const { loadFixture } = waffle;
 
 import { BondController, BondFactory, MockERC20, Tranche, TrancheFactory } from "../typechain";
 const parse = hre.ethers.utils.parseEther;
@@ -76,9 +79,20 @@ describe("Bond Controller", () => {
     };
   };
 
+  const fixture = async () => await setupTestContext([200, 300, 500]);
+  const getFixture = (tranches: number[]): Fixture<TestContext> => {
+    // in order for fixtures to actually save time, have to use the same instance for each run
+    // so can't dynamically generate every time unless necessary
+    if (_.isEqual(tranches, [200, 300, 500])) {
+      return fixture;
+    } else {
+      return async () => await setupTestContext(tranches);
+    }
+  };
+
   describe("Initialization", function () {
     it("should successfully initialize a tranche bond", async () => {
-      const { bond, tranches, mockCollateralToken, admin } = await setupTestContext([100, 200, 200, 500]);
+      const { bond, tranches, mockCollateralToken, admin } = await loadFixture(getFixture([200, 300, 500]));
       expect(await bond.collateralToken()).to.equal(mockCollateralToken.address);
       // ensure user has admin permissions
       expect(await bond.hasRole(hre.ethers.constants.HashZero, await admin.getAddress())).to.be.true;
@@ -95,8 +109,8 @@ describe("Bond Controller", () => {
     });
 
     it("should fail with zero address collateralToken", async () => {
-      const tranches = [100, 200, 200, 500];
-      const { bondFactory, admin } = await setupTestContext(tranches);
+      const tranches = [200, 300, 500];
+      const { bondFactory, admin } = await loadFixture(getFixture(tranches));
       await expect(
         bondFactory
           .connect(admin)
@@ -119,10 +133,10 @@ describe("Bond Controller", () => {
 
       const mockCollateralToken = <MockERC20>await deploy("MockERC20", signers[0], ["Mock ERC20", "MOCK"]);
       const maturityDate = await time.secondsFromNow(10000);
-      await bondFactory.connect(signers[0]).createBond(mockCollateralToken.address, [100, 200, 200, 500], maturityDate);
+      await bondFactory.connect(signers[0]).createBond(mockCollateralToken.address, [200, 300, 500], maturityDate);
 
       await expect(
-        bondFactory.connect(signers[0]).createBond(mockCollateralToken.address, [100, 200, 200, 500], maturityDate),
+        bondFactory.connect(signers[0]).createBond(mockCollateralToken.address, [200, 300, 500], maturityDate),
       ).to.be.revertedWith("BondFactory: Bond already exists");
     });
 
@@ -212,7 +226,7 @@ describe("Bond Controller", () => {
   describe("Deposit", function () {
     it("should successfully deposit collateral and mint tranche tokens", async () => {
       const trancheValues = [200, 300, 500];
-      const { bond, tranches, mockCollateralToken, user } = await setupTestContext(trancheValues);
+      const { bond, tranches, mockCollateralToken, user } = await loadFixture(getFixture(trancheValues));
 
       const amount = parse("1000");
       await mockCollateralToken.mint(await user.getAddress(), amount);
@@ -237,8 +251,8 @@ describe("Bond Controller", () => {
     });
 
     it("should successfully deposit collateral with existing collateral", async () => {
-      const trancheValues = [100, 200, 200, 500];
-      const { bond, tranches, mockCollateralToken, user, other } = await setupTestContext(trancheValues);
+      const trancheValues = [200, 300, 500];
+      const { bond, tranches, mockCollateralToken, user, other } = await loadFixture(getFixture(trancheValues));
 
       const amount = parse("1000");
       await mockCollateralToken.mint(await user.getAddress(), amount);
@@ -267,8 +281,8 @@ describe("Bond Controller", () => {
     });
 
     it("should successfully deposit collateral with positive CD ratio", async () => {
-      const trancheValues = [100, 200, 200, 500];
-      const { bond, tranches, mockCollateralToken, user, other } = await setupTestContext(trancheValues);
+      const trancheValues = [200, 300, 500];
+      const { bond, tranches, mockCollateralToken, user, other } = await loadFixture(getFixture(trancheValues));
 
       const amount = parse("1000");
       await mockCollateralToken.mint(await user.getAddress(), amount);
@@ -299,8 +313,8 @@ describe("Bond Controller", () => {
     });
 
     it("should successfully deposit collateral with negative CD ratio", async () => {
-      const trancheValues = [100, 200, 200, 500];
-      const { bond, tranches, mockCollateralToken, user, other } = await setupTestContext(trancheValues);
+      const trancheValues = [200, 300, 500];
+      const { bond, tranches, mockCollateralToken, user, other } = await loadFixture(getFixture(trancheValues));
 
       const amount = parse("1000");
       await mockCollateralToken.mint(await user.getAddress(), amount);
@@ -331,8 +345,8 @@ describe("Bond Controller", () => {
     });
 
     it("should fail to deposit 0 collateral", async () => {
-      const trancheValues = [100, 200, 200, 500];
-      const { bond, mockCollateralToken, user } = await setupTestContext(trancheValues);
+      const trancheValues = [200, 300, 500];
+      const { bond, mockCollateralToken, user } = await loadFixture(getFixture(trancheValues));
 
       const amount = parse("1000");
       await mockCollateralToken.mint(await user.getAddress(), amount);
@@ -342,8 +356,8 @@ describe("Bond Controller", () => {
     });
 
     it("should fail to deposit small collateral amount for first deposit", async () => {
-      const trancheValues = [100, 200, 200, 500];
-      const { bond, mockCollateralToken, user } = await setupTestContext(trancheValues);
+      const trancheValues = [200, 300, 500];
+      const { bond, mockCollateralToken, user } = await loadFixture(getFixture(trancheValues));
 
       const amount = parse("1000");
       await mockCollateralToken.mint(await user.getAddress(), amount);
@@ -353,8 +367,8 @@ describe("Bond Controller", () => {
     });
 
     it("should allow to deposit small collateral amount for second deposit", async () => {
-      const trancheValues = [100, 200, 200, 500];
-      const { bond, mockCollateralToken, user } = await setupTestContext(trancheValues);
+      const trancheValues = [200, 300, 500];
+      const { bond, mockCollateralToken, user } = await loadFixture(getFixture(trancheValues));
 
       const amount = parse("1000");
       await mockCollateralToken.mint(await user.getAddress(), amount);
@@ -365,8 +379,8 @@ describe("Bond Controller", () => {
     });
 
     it("should fail to deposit collateral if not approved", async () => {
-      const trancheValues = [100, 200, 200, 500];
-      const { bond, mockCollateralToken, user } = await setupTestContext(trancheValues);
+      const trancheValues = [200, 300, 500];
+      const { bond, mockCollateralToken, user } = await loadFixture(getFixture(trancheValues));
 
       const amount = parse("1000");
       await mockCollateralToken.mint(await user.getAddress(), amount);
@@ -378,7 +392,7 @@ describe("Bond Controller", () => {
 
     it("gas [ @skip-on-coverage ]", async () => {
       const trancheValues = [200, 300, 500];
-      const { bond, mockCollateralToken, user } = await setupTestContext(trancheValues);
+      const { bond, mockCollateralToken, user } = await loadFixture(async () => await setupTestContext(trancheValues));
 
       const amount = parse("1000");
       await mockCollateralToken.mint(await user.getAddress(), amount);
@@ -392,8 +406,8 @@ describe("Bond Controller", () => {
   });
 
   describe("Mature", function () {
-    const setup = async (trancheValues = [100, 200, 200, 500]) => {
-      const { bond, tranches, mockCollateralToken, user, admin } = await setupTestContext(trancheValues);
+    const setup = async (trancheValues = [200, 300, 500]) => {
+      const { bond, tranches, mockCollateralToken, user, admin } = await loadFixture(getFixture(trancheValues));
 
       const amount = parse("1000");
       await mockCollateralToken.mint(await user.getAddress(), amount);
@@ -408,7 +422,7 @@ describe("Bond Controller", () => {
       const { bond, tranches, mockCollateralToken, user, admin } = await setup(trancheValues);
       await expect(bond.connect(admin).mature())
         .to.emit(bond, "Mature")
-        .withArgs(await admin.getAddress);
+        .withArgs(await admin.getAddress());
 
       for (let i = 0; i < tranches.length; i++) {
         const tranche = tranches[i];
@@ -427,7 +441,7 @@ describe("Bond Controller", () => {
       await time.increaseTime(10000);
       await expect(bond.connect(admin).mature())
         .to.emit(bond, "Mature")
-        .withArgs(await admin.getAddress);
+        .withArgs(await admin.getAddress());
 
       for (let i = 0; i < tranches.length; i++) {
         const tranche = tranches[i];
@@ -447,7 +461,7 @@ describe("Bond Controller", () => {
       await mockCollateralToken.rebase(5000);
       await expect(bond.connect(admin).mature())
         .to.emit(bond, "Mature")
-        .withArgs(await admin.getAddress);
+        .withArgs(await admin.getAddress());
 
       for (let i = 0; i < tranches.length - 1; i++) {
         const tranche = tranches[i];
@@ -468,7 +482,7 @@ describe("Bond Controller", () => {
       await mockCollateralToken.rebase(20000);
       await expect(bond.connect(admin).mature())
         .to.emit(bond, "Mature")
-        .withArgs(await admin.getAddress);
+        .withArgs(await admin.getAddress());
 
       for (let i = 0; i < tranches.length - 1; i++) {
         const tranche = tranches[i];
@@ -499,13 +513,13 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("174959");
+      expect(gasUsed.toString()).to.equal("140454");
     });
   });
 
   describe("redeemMature", async () => {
-    const setup = async (trancheValues = [100, 200, 200, 500]) => {
-      const { bond, tranches, mockCollateralToken, user, admin } = await setupTestContext(trancheValues);
+    const setup = async (trancheValues = [200, 300, 500]) => {
+      const { bond, tranches, mockCollateralToken, user, admin } = await loadFixture(getFixture(trancheValues));
 
       const amount = parse("1000");
       await mockCollateralToken.mint(await user.getAddress(), amount);
@@ -535,7 +549,7 @@ describe("Bond Controller", () => {
 
     it("should fail to redeem an immature bond", async () => {
       const trancheValues = [200, 300, 500];
-      const { bond, tranches, mockCollateralToken, user } = await setupTestContext(trancheValues);
+      const { bond, tranches, mockCollateralToken, user } = await loadFixture(getFixture(trancheValues));
 
       const amount = parse("1000");
       await mockCollateralToken.mint(await user.getAddress(), amount);
@@ -568,8 +582,8 @@ describe("Bond Controller", () => {
   });
 
   describe("redeem", async () => {
-    const setup = async (trancheValues = [100, 200, 200, 500]) => {
-      const { bond, tranches, mockCollateralToken, user, admin } = await setupTestContext(trancheValues);
+    const setup = async (trancheValues = [200, 300, 500]) => {
+      const { bond, tranches, mockCollateralToken, user, admin } = await loadFixture(getFixture(trancheValues));
 
       const amount = parse("1000");
       await mockCollateralToken.mint(await user.getAddress(), amount);
@@ -640,7 +654,7 @@ describe("Bond Controller", () => {
       const { bond, user, admin } = await setup();
       await bond.connect(admin).mature();
 
-      await expect(bond.connect(user).redeem([100, 200, 200, 500])).to.be.revertedWith(
+      await expect(bond.connect(user).redeem([200, 300, 500])).to.be.revertedWith(
         "BondController: Bond is already mature",
       );
     });
@@ -648,10 +662,10 @@ describe("Bond Controller", () => {
     it("should fail to redeem with invalid redeem amounts", async () => {
       const { bond, user } = await setup();
 
-      await expect(bond.connect(user).redeem([100, 200])).to.be.revertedWith("BondController: Invalid redeem amounts");
-      await expect(bond.connect(user).redeem([100, 200, 200, 500, 100])).to.be.revertedWith(
+      await expect(bond.connect(user).redeem([100, 200, 300, 500])).to.be.revertedWith(
         "BondController: Invalid redeem amounts",
       );
+      await expect(bond.connect(user).redeem([500, 500])).to.be.revertedWith("BondController: Invalid redeem amounts");
     });
 
     it("should fail to redeem out of ratio", async () => {
