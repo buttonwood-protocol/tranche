@@ -82,6 +82,7 @@ contract BondController is IBondController, Initializable, AccessControl {
     function deposit(uint256 amount) external override {
         require(amount > 0, "BondController: invalid amount");
         require(totalDebt > 0 || amount >= MINIMUM_FIRST_DEPOSIT, "BondController: invalid initial amount");
+        require(!isMature, "BondController: Already mature");
         uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(this));
         TransferHelper.safeTransferFrom(collateralToken, _msgSender(), address(this), amount);
 

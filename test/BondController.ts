@@ -366,6 +366,19 @@ describe("Bond Controller", () => {
       await expect(bond.connect(user).deposit(100)).to.be.revertedWith("BondController: invalid initial amount");
     });
 
+    it("should fail to deposit if mature", async () => {
+      const trancheValues = [100, 200, 200, 500];
+      const { bond, mockCollateralToken, admin, user } = await setupTestContext(trancheValues);
+
+      const amount = parse("1000");
+      await mockCollateralToken.mint(await user.getAddress(), amount);
+      await mockCollateralToken.connect(user).approve(bond.address, amount);
+
+      await bond.connect(admin).mature();
+
+      await expect(bond.connect(user).deposit(amount)).to.be.revertedWith("BondController: Already mature");
+    });
+
     it("should allow to deposit small collateral amount for second deposit", async () => {
       const trancheValues = [200, 300, 500];
       const { bond, mockCollateralToken, user } = await loadFixture(getFixture(trancheValues));
@@ -401,7 +414,7 @@ describe("Bond Controller", () => {
       const tx = await bond.connect(user).deposit(amount);
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("210766");
+      expect(gasUsed.toString()).to.equal("211592");
     });
   });
 
