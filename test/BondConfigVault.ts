@@ -73,4 +73,45 @@ describe("BondConfigVault", () => {
       expect(await bondConfigVault.numConfigs()).to.eq(0);
     });
   });
+
+  describe("Updating Configs Edge Cases", function () {
+    it("Adding the same config multiple times doesn't change number of configs", async () => {
+      const { bondConfigVault, mockUnderlyingToken } = await setupTestContext();
+
+      for (let i = 0; i < 10; i++) {
+        await expect(bondConfigVault.addBondConfig(mockUnderlyingToken.address, [100, 200, 700], 100))
+          .to.emit(bondConfigVault, "BondConfigAdded")
+          .withArgs(mockUnderlyingToken.address, [100, 200, 700], 100);
+      }
+
+      expect(await bondConfigVault.numConfigs()).to.eq(1);
+    });
+
+    it("Removing non-existent config throws error", async () => {
+      const { bondConfigVault, mockUnderlyingToken } = await setupTestContext();
+
+      await expect(bondConfigVault.addBondConfig(mockUnderlyingToken.address, [100, 900], 100))
+        .to.emit(bondConfigVault, "BondConfigAdded")
+        .withArgs(mockUnderlyingToken.address, [100, 900], 100);
+      expect(await bondConfigVault.numConfigs()).to.eq(1);
+
+      // Removing non-existent bondConfig to test numConfigs not changing
+      await expect(bondConfigVault.removeBondConfig(mockUnderlyingToken.address, [200, 800], 200))
+        .to.emit(bondConfigVault, "BondConfigRemoved")
+        .withArgs(mockUnderlyingToken.address, [200, 800], 200);
+
+      // Testing only 1 config present
+      expect(await bondConfigVault.numConfigs()).to.eq(1);
+
+      // Validating the 1 config present is the first one, not the latter
+      const { collateralToken, trancheRatios, duration } = await bondConfigVault.bondConfigAt(0);
+      expect(collateralToken).to.eq(mockUnderlyingToken.address);
+      // ToDo: Figure out cleaner way to test this
+      expect(trancheRatios.toString()).to.eq(
+        [BigNumber.from(100), BigNumber.from(900)].toString(),
+      );
+      expect(duration).to.eq(100);
+
+    });
+  });
 });
