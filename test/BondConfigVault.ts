@@ -39,6 +39,18 @@ describe("BondConfigVault", () => {
     });
   });
 
+  describe("Ownership", function () {
+    it("Can transfer ownership", async () => {
+      const { bondConfigVault, deployer, userA } = await setupTestContext();
+      const deployerAddress = await deployer.getAddress();
+      const userAAddress = await userA.getAddress();
+
+      expect(await bondConfigVault.owner()).to.eq(deployerAddress);
+      await bondConfigVault.transferOwnership(userAAddress);
+      expect(await bondConfigVault.owner()).to.eq(userAAddress);
+    });
+  });
+
   describe("Simple Updating Configs", function () {
     it("Can successfully add a config", async () => {
       const { bondConfigVault, mockUnderlyingToken } = await setupTestContext();

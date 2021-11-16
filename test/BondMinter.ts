@@ -54,6 +54,18 @@ describe("BondConfigVault", () => {
     });
   });
 
+  describe("Ownership", function () {
+    it("Can transfer ownership", async () => {
+      const { bondMinter, deployer, userA } = await setupTestContext();
+      const deployerAddress = await deployer.getAddress();
+      const userAAddress = await userA.getAddress();
+
+      expect(await bondMinter.owner()).to.eq(deployerAddress);
+      await bondMinter.transferOwnership(userAAddress);
+      expect(await bondMinter.owner()).to.eq(userAAddress);
+    });
+  });
+
   describe("State Updates", function () {
     it("Updating Waiting Period", async () => {
       const { bondMinter } = await setupTestContext();
