@@ -51,7 +51,7 @@ contract BondMinter is IBondMinter, Ownable, BondConfigVault {
     function mintBonds() external override {
         require(
             block.timestamp - lastMintTimestamp >= waitingPeriod,
-            "Not enough time has passed since last mint timestamp."
+            "BondMinter: Not enough time has passed since last mint timestamp"
         );
         lastMintTimestamp = block.timestamp;
 
