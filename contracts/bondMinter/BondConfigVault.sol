@@ -6,7 +6,7 @@ import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableS
 
 /**
  * @title Bond Config Vault
- * @dev BondConfigVault for storing BondConfigs
+ * @notice Implementation of IBondConfigVault
  */
 contract BondConfigVault is IBondConfigVault, Ownable {
     using EnumerableSet for EnumerableSet.Bytes32Set;
@@ -26,7 +26,7 @@ contract BondConfigVault is IBondConfigVault, Ownable {
     }
 
     /**
-     * @notice Adds a BondConfig into the vault
+     * @inheritdoc IBondConfigVault
      * @dev Stores a hash of the bondConfig into `configHashes` and a corresponding entry into `bondConfigMapping`
      */
     function addBondConfig(
@@ -41,7 +41,7 @@ contract BondConfigVault is IBondConfigVault, Ownable {
     }
 
     /**
-     * @notice Removes a BondConfig from the vault
+     * @inheritdoc IBondConfigVault
      * @dev Removes the hash of the bondConfig from `configHashes` and the corresponding entry from `bondConfigMapping`
      */
     function removeBondConfig(
@@ -56,7 +56,7 @@ contract BondConfigVault is IBondConfigVault, Ownable {
     }
 
     /**
-     * @return The number of configs stored in the vault
+     * @inheritdoc IBondConfigVault
      * @dev Retrieves the length of `configHashes`
      */
     function numConfigs() public view override returns (uint256) {
@@ -64,8 +64,8 @@ contract BondConfigVault is IBondConfigVault, Ownable {
     }
 
     /**
-     * @return The number the config stored at `index`
-     * @notice No guarantees are made on the ordering
+     * @inheritdoc IBondConfigVault
+     * @dev No guarantees are made on the ordering.
      * @dev Retrieves the hash at `index` and returns corresponding value from `bondConfigMapping`
      */
     function bondConfigAt(uint256 index) public view override returns (BondConfig memory) {

@@ -4,21 +4,24 @@ import "./IBondConfigVault.sol";
 import "./IBondFactory.sol";
 
 /**
- * @dev Interface for BondMinter
+ * @title BondMinter Interface
+ * @notice Interface for canonically minting bonds according to a stored vaults of configurations
  */
 interface IBondMinter is IBondConfigVault {
     /**
-     * @dev Sets the bondFactory
+     * @notice Sets the bondFactory
+     * @param _bondFactory The bondFactory that will be used mint the bonds
      */
     function setBondFactory(IBondFactory _bondFactory) external;
 
     /**
-     * @dev Sets the waitingPeriod required between minting periods
+     * @notice Sets the waitingPeriod required between minting periods
+     * @param _waitingPeriod The minimum waiting period (in seconds) between mints
      */
     function setWaitingPeriod(uint256 _waitingPeriod) external;
 
     /**
-     * @dev Iterates over configurations and mints bonds for each
+     * @notice Iterates over configurations and mints bonds for each using the bondFactory
      */
     function mintBonds() external;
 }

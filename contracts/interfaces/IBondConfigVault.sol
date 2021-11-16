@@ -1,7 +1,8 @@
 pragma solidity >=0.4;
 
 /**
- * @dev Interface for BondConfigVault
+ * @title BondConfigVault Interface
+ * @notice Interface for storing BondConfigs
  */
 interface IBondConfigVault {
     struct BondConfig {
@@ -10,12 +11,27 @@ interface IBondConfigVault {
         uint256 duration;
     }
 
+    /**
+     * @notice Event emitted when a new BondConfig is added
+     * @param collateralToken address of the contract for the collateral
+     * @param trancheRatios Tranching ratios for the bonds. Must sum up to 1000.
+     * @param duration Duration of the bond in seconds
+     */
     event BondConfigAdded(address collateralToken, uint256[] trancheRatios, uint256 duration);
 
+    /**
+     * @notice Event emitted when a BondConfig is removed
+     * @param collateralToken address of the contract for the collateral
+     * @param trancheRatios Tranching ratios for the bonds. Must sum up to 1000.
+     * @param duration Duration of the bond in seconds
+     */
     event BondConfigRemoved(address collateralToken, uint256[] trancheRatios, uint256 duration);
 
     /**
-     * @dev Adds new bond configuration to internal list
+     * @notice Adds new bond configuration to internal list
+     * @param collateralToken address of the contract for the collateral
+     * @param trancheRatios Tranching ratios for the bonds. Must sum up to 1000.
+     * @param duration Duration of the bond in seconds
      */
     function addBondConfig(
         address collateralToken,
@@ -24,7 +40,10 @@ interface IBondConfigVault {
     ) external;
 
     /**
-     * @dev Removes bond configuration to internal list
+     * @notice Removes bond configuration to internal list
+     * @param collateralToken address of the contract for the collateral
+     * @param trancheRatios Tranching ratios for the bonds. Must sum up to 1000.
+     * @param duration Duration of the bond in seconds
      */
     function removeBondConfig(
         address collateralToken,
@@ -33,12 +52,12 @@ interface IBondConfigVault {
     ) external;
 
     /**
-     * @dev Returns current number of bondConfigs
+     * @notice The number of configs stored in the vault
      */
     function numConfigs() external view returns (uint256);
 
     /**
-     * @dev Returns bondConfig at current index
+     * @notice Returns the bondConfig stored at `index`
      */
     function bondConfigAt(uint256 index) external view returns (BondConfig memory);
 }
