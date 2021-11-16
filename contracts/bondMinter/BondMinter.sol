@@ -10,8 +10,11 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
  * @notice Implementation of IBondMinter
  */
 contract BondMinter is IBondMinter, Ownable, BondConfigVault {
+    /// @notice BondFactory that will be used to mint bonds
     IBondFactory public bondFactory;
+    /// @notice Block timestamp (in seconds) of the last mint
     uint256 public lastMintTimestamp;
+    /// @notice Minimum waiting period (in second) between mints allowed
     uint256 public waitingPeriod;
 
     /**

@@ -11,7 +11,9 @@ import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableS
 contract BondConfigVault is IBondConfigVault, Ownable {
     using EnumerableSet for EnumerableSet.Bytes32Set;
 
+    /// @notice Mapping of hashes to stored BondConfigs
     mapping(bytes32 => BondConfig) private bondConfigMapping;
+    /// @notice Enumerable set of hashes of the stored bondConfigs
     EnumerableSet.Bytes32Set private configHashes;
 
     /**
