@@ -103,7 +103,7 @@ describe("Tranche Token", () => {
       const amount = hre.ethers.utils.parseEther("100");
 
       await expect(tranche.connect(other).mint(await other.getAddress(), amount)).to.be.revertedWith(
-        `revert AccessControl: account ${(await other.getAddress()).toLowerCase()} is missing role ${
+        `AccessControl: account ${(await other.getAddress()).toLowerCase()} is missing role ${
           hre.ethers.constants.HashZero
         }`,
       );
@@ -146,7 +146,7 @@ describe("Tranche Token", () => {
       const initialBalance = await tranche.balanceOf(await other.getAddress());
 
       await expect(tranche.connect(user).burn(await other.getAddress(), initialBalance.mul(2))).to.be.revertedWith(
-        "revert ERC20: burn amount exceeds balance",
+        "ERC20: burn amount exceeds balance",
       );
     });
 
@@ -156,7 +156,7 @@ describe("Tranche Token", () => {
       await tranche.connect(user).mint(await other.getAddress(), amount);
 
       await expect(tranche.connect(other).burn(await other.getAddress(), amount)).to.be.revertedWith(
-        `revert AccessControl: account ${(await other.getAddress()).toLowerCase()} is missing role ${
+        `AccessControl: account ${(await other.getAddress()).toLowerCase()} is missing role ${
           hre.ethers.constants.HashZero
         }`,
       );
@@ -230,7 +230,7 @@ describe("Tranche Token", () => {
 
       await expect(
         tranche.connect(user).redeem(await other.getAddress(), await other.getAddress(), initialBalance.mul(2)),
-      ).to.be.revertedWith("revert ERC20: burn amount exceeds balance");
+      ).to.be.revertedWith("ERC20: burn amount exceeds balance");
     });
 
     it("should fail to redeem tokens from non-owner", async () => {
@@ -241,7 +241,7 @@ describe("Tranche Token", () => {
       await expect(
         tranche.connect(other).redeem(await other.getAddress(), await other.getAddress(), amount),
       ).to.be.revertedWith(
-        `revert AccessControl: account ${(await other.getAddress()).toLowerCase()} is missing role ${
+        `AccessControl: account ${(await other.getAddress()).toLowerCase()} is missing role ${
           hre.ethers.constants.HashZero
         }`,
       );

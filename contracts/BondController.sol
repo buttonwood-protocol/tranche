@@ -61,12 +61,11 @@ contract BondController is IBondController, Initializable, AccessControl {
             require(ratio <= TRANCHE_RATIO_GRANULARITY, "BondController: Invalid tranche ratio");
             totalRatio += ratio;
 
-            address trancheTokenAddress =
-                ITrancheFactory(_trancheFactory).createTranche(
-                    getTrancheName(collateralSymbol, i, trancheRatios.length),
-                    getTrancheSymbol(collateralSymbol, i, trancheRatios.length),
-                    _collateralToken
-                );
+            address trancheTokenAddress = ITrancheFactory(_trancheFactory).createTranche(
+                getTrancheName(collateralSymbol, i, trancheRatios.length),
+                getTrancheSymbol(collateralSymbol, i, trancheRatios.length),
+                _collateralToken
+            );
             tranches.push(TrancheData(ITranche(trancheTokenAddress), ratio));
             trancheTokenAddresses[trancheTokenAddress] = true;
         }
