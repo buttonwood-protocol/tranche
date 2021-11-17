@@ -219,7 +219,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("910463");
+      expect(gasUsed.toString()).to.equal("932363");
     });
   });
 
@@ -399,7 +399,7 @@ describe("Bond Controller", () => {
       await mockCollateralToken.mint(await user.getAddress(), amount);
 
       await expect(bond.connect(user).deposit(amount)).to.be.revertedWith(
-        "revert TransferHelper::transferFrom: transferFrom failed",
+        "TransferHelper::transferFrom: transferFrom failed",
       );
     });
 
@@ -414,7 +414,7 @@ describe("Bond Controller", () => {
       const tx = await bond.connect(user).deposit(amount);
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("211592");
+      expect(gasUsed.toString()).to.equal("262669");
     });
   });
 
@@ -526,7 +526,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("140454");
+      expect(gasUsed.toString()).to.equal("167362");
     });
   });
 
@@ -590,7 +590,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("44161");
+      expect(gasUsed.toString()).to.equal("81458");
     });
   });
 
@@ -707,7 +707,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("66757");
+      expect(gasUsed.toString()).to.equal("119720");
     });
   });
 });
