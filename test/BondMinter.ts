@@ -16,6 +16,7 @@ interface TestContext {
   userA: Signer;
   bondMinter: BondMinter;
   mockBondFactory: MockContract;
+  mockBondFactory2: MockContract;
   mockUnderlyingToken: MockERC20;
 }
 
@@ -30,6 +31,7 @@ describe("BondConfigVault", () => {
     const abi = bondFactory.abi;
 
     const mockBondFactory: MockContract = await waffle.deployMockContract(deployer, abi);
+    const mockBondFactory2: MockContract = await waffle.deployMockContract(deployer, abi);
     const bondMinter: BondMinter = <BondMinter>await deploy("BondMinter", deployer, [mockBondFactory.address, DAYS_30]);
 
     const mockUnderlyingToken: MockERC20 = <MockERC20>await deploy("MockERC20", deployer, ["Mock ERC20", "MOCK"]);
@@ -40,6 +42,7 @@ describe("BondConfigVault", () => {
       userA,
       bondMinter,
       mockBondFactory,
+      mockBondFactory2,
       mockUnderlyingToken,
     };
   };
@@ -69,10 +72,16 @@ describe("BondConfigVault", () => {
   describe("State Updates", function () {
     it("Updating Waiting Period", async () => {
       const { bondMinter } = await setupTestContext();
-
       expect(await bondMinter.waitingPeriod()).to.eq(DAYS_30);
       await bondMinter.setWaitingPeriod(DAYS_60);
       expect(await bondMinter.waitingPeriod()).to.eq(DAYS_60);
+    });
+
+    it("Updating BondFactory", async () => {
+      const { bondMinter, mockBondFactory, mockBondFactory2 } = await setupTestContext();
+      expect(await bondMinter.bondFactory()).to.eq(mockBondFactory.address);
+      await bondMinter.setBondFactory(mockBondFactory2.address);
+      expect(await bondMinter.bondFactory()).to.eq(mockBondFactory2.address);
     });
   });
 
@@ -99,6 +108,8 @@ describe("BondConfigVault", () => {
       await time.setNextBlockTimestamp(timestampAfter);
 
       await bondMinter.mintBonds();
+
+      expect(await bondMinter.lastMintTimestamp()).to.eq(timestampAfter);
     });
 
     it("Minting same bond twice after waiting the exact waiting period", async () => {
@@ -126,6 +137,8 @@ describe("BondConfigVault", () => {
       await time.setNextBlockTimestamp(timestampAfter + DAYS_30);
 
       await bondMinter.mintBonds();
+
+      expect(await bondMinter.lastMintTimestamp()).to.eq(timestampAfter + DAYS_30);
     });
 
     it("Minting same bond twice too soon should revert", async () => {
@@ -153,6 +166,7 @@ describe("BondConfigVault", () => {
       await time.setNextBlockTimestamp(timestampAfter + DAYS_29);
 
       await expect(bondMinter.mintBonds()).to.be.reverted;
+      expect(await bondMinter.lastMintTimestamp()).to.eq(timestampAfter);
     });
   });
 });
