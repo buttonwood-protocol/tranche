@@ -8,7 +8,7 @@ import { BlockchainTime } from "./utils/time";
 import { ZERO_ADDRESS } from "./utils/erc20";
 const { loadFixture } = waffle;
 
-import { BondController, BondFactory, MockERC20, Tranche, TrancheFactory } from "../contracts/typechain";
+import { BondController, BondFactory, MockERC20, Tranche, TrancheFactory } from "../typechain";
 const parse = hre.ethers.utils.parseEther;
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 

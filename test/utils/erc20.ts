@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { Signer, BigNumber } from "ethers";
-import { MockERC20 } from "../../contracts/typechain/MockERC20";
+import { MockERC20 } from "../../typechain";
 
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 

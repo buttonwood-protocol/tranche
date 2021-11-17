@@ -4,7 +4,7 @@ import { BigNumber, Signer } from "ethers";
 import { deploy } from "./utils/contracts";
 const { loadFixture } = waffle;
 
-import { MockERC20, MockERC20CustomDecimals, Tranche, TrancheFactory } from "../contracts/typechain";
+import { MockERC20, MockERC20CustomDecimals, Tranche, TrancheFactory } from "../typechain";
 
 interface TestContext {
   tranche: Tranche;

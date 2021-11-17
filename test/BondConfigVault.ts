@@ -3,7 +3,7 @@ import { ethers } from "hardhat";
 import { BigNumber, Signer } from "ethers";
 import { deploy } from "./utils/contracts";
 
-import { BondConfigVault, MockERC20 } from "../contracts/typechain";
+import { BondConfigVault, MockERC20 } from "../typechain";
 import { expect } from "chai";
 
 interface TestContext {

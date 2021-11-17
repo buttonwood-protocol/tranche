@@ -13,7 +13,7 @@ import {
   BondController,
   BondFactory,
   UniV3LoanRouter,
-} from "../contracts/typechain";
+} from "../typechain";
 
 interface TestContext {
   router: UniV3LoanRouter;

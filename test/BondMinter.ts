@@ -1,7 +1,7 @@
 import { ethers, waffle, artifacts } from "hardhat";
 import { Signer } from "ethers";
 import { deploy } from "./utils/contracts";
-import { BondMinter, MockERC20 } from "../contracts/typechain";
+import { BondMinter, MockERC20 } from "../typechain";
 import { expect } from "chai";
 import { BlockchainTime } from "./utils/time";
 import { MockContract } from "ethereum-waffle";
