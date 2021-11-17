@@ -97,8 +97,10 @@ describe("BondConfigVault", () => {
 
       // Doesn't emit subsequent times.
       for (let i = 0; i < 10; i++) {
-        await expect(bondConfigVault.addBondConfig(mockUnderlyingToken.address, [100, 200, 700], 100))
-          .to.not.emit(bondConfigVault, "BondConfigAdded");
+        await expect(bondConfigVault.addBondConfig(mockUnderlyingToken.address, [100, 200, 700], 100)).to.not.emit(
+          bondConfigVault,
+          "BondConfigAdded",
+        );
       }
 
       expect(await bondConfigVault.numConfigs()).to.eq(1);
@@ -113,8 +115,10 @@ describe("BondConfigVault", () => {
       expect(await bondConfigVault.numConfigs()).to.eq(1);
 
       // Removing non-existent bondConfig to test numConfigs not changing. Shouldn't emit
-      await expect(bondConfigVault.removeBondConfig(mockUnderlyingToken.address, [200, 800], 200))
-        .to.not.emit(bondConfigVault, "BondConfigRemoved")
+      await expect(bondConfigVault.removeBondConfig(mockUnderlyingToken.address, [200, 800], 200)).to.not.emit(
+        bondConfigVault,
+        "BondConfigRemoved",
+      );
 
       // Testing only 1 config present
       expect(await bondConfigVault.numConfigs()).to.eq(1);
@@ -123,11 +127,8 @@ describe("BondConfigVault", () => {
       const { collateralToken, trancheRatios, duration } = await bondConfigVault.bondConfigAt(0);
       expect(collateralToken).to.eq(mockUnderlyingToken.address);
       // ToDo: Figure out cleaner way to test this
-      expect(trancheRatios.toString()).to.eq(
-        [BigNumber.from(100), BigNumber.from(900)].toString(),
-      );
+      expect(trancheRatios.toString()).to.eq([BigNumber.from(100), BigNumber.from(900)].toString());
       expect(duration).to.eq(100);
-
     });
   });
 });
