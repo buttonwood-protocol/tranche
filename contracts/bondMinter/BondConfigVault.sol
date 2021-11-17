@@ -41,11 +41,14 @@ contract BondConfigVault is IBondConfigVault, Ownable {
         address collateralToken_,
         uint256[] memory trancheRatios_,
         uint256 duration_
-    ) external override onlyOwner {
+    ) external override onlyOwner returns (bool) {
         bytes32 hash = computeHash(collateralToken_, trancheRatios_, duration_);
-        configHashes.add(hash);
-        bondConfigMapping[hash] = BondConfig(collateralToken_, trancheRatios_, duration_);
-        emit BondConfigAdded(collateralToken_, trancheRatios_, duration_);
+        if (configHashes.add(hash)) {
+            bondConfigMapping[hash] = BondConfig(collateralToken_, trancheRatios_, duration_);
+            emit BondConfigAdded(collateralToken_, trancheRatios_, duration_);
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -56,11 +59,14 @@ contract BondConfigVault is IBondConfigVault, Ownable {
         address collateralToken_,
         uint256[] memory trancheRatios_,
         uint256 duration_
-    ) external override onlyOwner {
+    ) external override onlyOwner returns (bool) {
         bytes32 hash = computeHash(collateralToken_, trancheRatios_, duration_);
-        configHashes.remove(hash);
-        delete bondConfigMapping[hash];
-        emit BondConfigRemoved(collateralToken_, trancheRatios_, duration_);
+        if (configHashes.remove(hash)) {
+            delete bondConfigMapping[hash];
+            emit BondConfigRemoved(collateralToken_, trancheRatios_, duration_);
+            return true;
+        }
+        return false;
     }
 
     /**

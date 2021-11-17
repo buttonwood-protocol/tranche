@@ -90,10 +90,15 @@ describe("BondConfigVault", () => {
     it("Adding the same config multiple times doesn't change number of configs", async () => {
       const { bondConfigVault, mockUnderlyingToken } = await setupTestContext();
 
+      // Emits the first time
+      await expect(bondConfigVault.addBondConfig(mockUnderlyingToken.address, [100, 200, 700], 100))
+        .to.emit(bondConfigVault, "BondConfigAdded")
+        .withArgs(mockUnderlyingToken.address, [100, 200, 700], 100);
+
+      // Doesn't emit subsequent times.
       for (let i = 0; i < 10; i++) {
         await expect(bondConfigVault.addBondConfig(mockUnderlyingToken.address, [100, 200, 700], 100))
-          .to.emit(bondConfigVault, "BondConfigAdded")
-          .withArgs(mockUnderlyingToken.address, [100, 200, 700], 100);
+          .to.not.emit(bondConfigVault, "BondConfigAdded");
       }
 
       expect(await bondConfigVault.numConfigs()).to.eq(1);
@@ -107,10 +112,9 @@ describe("BondConfigVault", () => {
         .withArgs(mockUnderlyingToken.address, [100, 900], 100);
       expect(await bondConfigVault.numConfigs()).to.eq(1);
 
-      // Removing non-existent bondConfig to test numConfigs not changing
+      // Removing non-existent bondConfig to test numConfigs not changing. Shouldn't emit
       await expect(bondConfigVault.removeBondConfig(mockUnderlyingToken.address, [200, 800], 200))
-        .to.emit(bondConfigVault, "BondConfigRemoved")
-        .withArgs(mockUnderlyingToken.address, [200, 800], 200);
+        .to.not.emit(bondConfigVault, "BondConfigRemoved")
 
       // Testing only 1 config present
       expect(await bondConfigVault.numConfigs()).to.eq(1);
