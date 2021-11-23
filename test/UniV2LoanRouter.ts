@@ -7,16 +7,16 @@ const { loadFixture } = waffle;
 
 import {
   MockERC20,
-  MockSwapRouter,
+  MockUniV2Router,
   Tranche,
   TrancheFactory,
   BondController,
   BondFactory,
-  UniV3LoanRouter,
+  UniV2LoanRouter,
 } from "../typechain";
 
 interface TestContext {
-  router: UniV3LoanRouter;
+  router: UniV2LoanRouter;
   mockCollateralToken: MockERC20;
   mockCashToken: MockERC20;
   bond: BondController;
@@ -28,7 +28,7 @@ interface TestContext {
 
 const time = new BlockchainTime();
 
-describe("Uniswap V3 Loan Router", () => {
+describe("Uniswap V2 Loan Router", () => {
   /**
    * Sets up a test context, deploying new contracts and returning them for use in a test
    */
@@ -36,8 +36,8 @@ describe("Uniswap V3 Loan Router", () => {
     const signers: Signer[] = await hre.ethers.getSigners();
     const [user, other, admin] = signers;
 
-    const mockSwapRouter = <MockSwapRouter>await deploy("MockSwapRouter", signers[0], []);
-    const router = <UniV3LoanRouter>await deploy("UniV3LoanRouter", signers[0], [mockSwapRouter.address]);
+    const mockUniV2Router = <MockUniV2Router>await deploy("MockUniV2Router", signers[0], []);
+    const router = <UniV2LoanRouter>await deploy("UniV2LoanRouter", signers[0], [mockUniV2Router.address]);
 
     const mockCollateralToken = <MockERC20>await deploy("MockERC20", signers[0], ["Mock ERC20", "MOCK"]);
     const mockCashToken = <MockERC20>await deploy("MockERC20", signers[0], ["Mock ERC20", "MOCK"]);
@@ -75,8 +75,8 @@ describe("Uniswap V3 Loan Router", () => {
       trancheContracts.push(tranche);
     }
     // load up the mock uniswap with tokens for swapping
-    await mockCollateralToken.mint(mockSwapRouter.address, hre.ethers.utils.parseEther("1000000000000"));
-    await mockCashToken.mint(mockSwapRouter.address, hre.ethers.utils.parseEther("1000000000000"));
+    await mockCollateralToken.mint(mockUniV2Router.address, hre.ethers.utils.parseEther("1000000000000"));
+    await mockCashToken.mint(mockUniV2Router.address, hre.ethers.utils.parseEther("1000000000000"));
 
     return {
       router,
@@ -368,30 +368,6 @@ describe("Uniswap V3 Loan Router", () => {
             { gasLimit: 9500000 },
           ),
       ).to.be.reverted;
-    });
-
-    it("gas [ @skip-on-coverage ]", async () => {
-      const { router, mockCollateralToken, mockCashToken, bond, user } = await loadFixture(fixture);
-      const amount = hre.ethers.utils.parseEther("100");
-      await mockCollateralToken.connect(user).mint(await user.getAddress(), amount);
-      await mockCollateralToken.connect(user).approve(router.address, amount);
-
-      // min output of 50 because the router will sell all A (20) and B (30) tranche tokens, but keep the Z tranches
-      const minOutput = hre.ethers.utils.parseEther("30");
-      const tx = await router
-        .connect(user)
-        .borrow(
-          amount,
-          bond.address,
-          mockCashToken.address,
-          [hre.ethers.utils.parseEther("20"), hre.ethers.utils.parseEther("10"), 0],
-          minOutput,
-          { gasLimit: 9500000 },
-        );
-
-      const receipt = await tx.wait();
-      const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("473369");
     });
   });
 });
