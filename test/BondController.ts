@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import hre, { waffle } from "hardhat";
-import _ from "lodash";
 import { BigNumber, Signer } from "ethers";
+import * as _ from "lodash";
 import { Fixture } from "ethereum-waffle";
 import { deploy } from "./utils/contracts";
 import { BlockchainTime } from "./utils/time";
@@ -109,7 +109,7 @@ describe("Bond Controller", () => {
       const { bond, tranches, mockCollateralToken, admin } = await loadFixture(getFixture([200, 300, 500]));
       expect(await bond.collateralToken()).to.equal(mockCollateralToken.address);
       // ensure user has admin permissions
-      expect(await bond.hasRole(hre.ethers.constants.HashZero, await admin.getAddress())).to.be.true;
+      expect(await bond.owner()).to.equal(await admin.getAddress());
       expect(await bond.totalDebt()).to.equal(0);
       expect(await bond.isMature()).to.be.false;
       for (let i = 0; i < tranches.length; i++) {
@@ -211,7 +211,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("912105");
+      expect(gasUsed.toString()).to.equal("914307");
     });
   });
 
@@ -228,7 +228,7 @@ describe("Bond Controller", () => {
         .to.emit(mockCollateralToken, "Transfer")
         .withArgs(await user.getAddress(), bond.address, amount)
         .to.emit(bond, "Deposit")
-        .withArgs(await user.getAddress(), amount);
+        .withArgs(await user.getAddress(), amount, "0");
 
       for (let i = 0; i < tranches.length; i++) {
         const tranche = tranches[i];
@@ -258,7 +258,7 @@ describe("Bond Controller", () => {
         .to.emit(mockCollateralToken, "Transfer")
         .withArgs(await other.getAddress(), bond.address, amount)
         .to.emit(bond, "Deposit")
-        .withArgs(await other.getAddress(), amount);
+        .withArgs(await other.getAddress(), amount, "0");
 
       for (let i = 0; i < tranches.length; i++) {
         const tranche = tranches[i];
@@ -290,7 +290,7 @@ describe("Bond Controller", () => {
         .to.emit(mockCollateralToken, "Transfer")
         .withArgs(await other.getAddress(), bond.address, amount)
         .to.emit(bond, "Deposit")
-        .withArgs(await other.getAddress(), amount);
+        .withArgs(await other.getAddress(), amount, "0");
 
       for (let i = 0; i < tranches.length; i++) {
         const tranche = tranches[i];
@@ -322,7 +322,7 @@ describe("Bond Controller", () => {
         .to.emit(mockCollateralToken, "Transfer")
         .withArgs(await other.getAddress(), bond.address, amount)
         .to.emit(bond, "Deposit")
-        .withArgs(await other.getAddress(), amount);
+        .withArgs(await other.getAddress(), amount, "0");
 
       for (let i = 0; i < tranches.length; i++) {
         const tranche = tranches[i];
@@ -438,7 +438,7 @@ describe("Bond Controller", () => {
       const tx = await bond.connect(user).deposit(amount);
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("264806");
+      expect(gasUsed.toString()).to.equal("268227");
     });
   });
 
@@ -550,7 +550,311 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("167362");
+      expect(gasUsed.toString()).to.equal("226644");
+    });
+  });
+
+  describe("Deposit Fees", function () {
+    it("should successfully set the fee as the admin", async () => {
+      const trancheValues = [200, 300, 500];
+      const { bond, admin } = await loadFixture(getFixture(trancheValues));
+
+      expect(await bond.feeBps()).to.equal("0");
+      const fee = BigNumber.from("5");
+      await expect(bond.connect(admin).setFee(fee)).to.emit(bond, "FeeUpdate").withArgs("5");
+
+      expect(await bond.feeBps()).to.equal(fee);
+    });
+
+    it("should fail to set the fee as non-admin", async () => {
+      const trancheValues = [200, 300, 500];
+      const { bond, user } = await loadFixture(getFixture(trancheValues));
+
+      expect(await bond.feeBps()).to.equal("0");
+      const fee = BigNumber.from("5");
+      await expect(bond.connect(user).setFee(fee)).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+
+    it("should fail to set the fee outside of range", async () => {
+      const trancheValues = [200, 300, 500];
+      const { bond, admin } = await loadFixture(getFixture(trancheValues));
+
+      expect(await bond.feeBps()).to.equal("0");
+      const fee = BigNumber.from("500");
+      await expect(bond.connect(admin).setFee(fee)).to.be.revertedWith("BondController: New fee too high");
+    });
+
+    it("should successfully set the fee back to 0", async () => {
+      const trancheValues = [200, 300, 500];
+      const { bond, admin } = await loadFixture(getFixture(trancheValues));
+
+      expect(await bond.feeBps()).to.equal("0");
+      const fee = BigNumber.from("5");
+      await expect(bond.connect(admin).setFee(fee)).to.not.be.reverted;
+      expect(await bond.feeBps()).to.equal(fee);
+      await expect(bond.connect(admin).setFee(0)).to.not.be.reverted;
+      expect(await bond.feeBps()).to.equal(0);
+    });
+
+    it("should successfully set the fee to max", async () => {
+      const trancheValues = [200, 300, 500];
+      const { bond, admin } = await loadFixture(getFixture(trancheValues));
+
+      expect(await bond.feeBps()).to.equal("0");
+      const fee = BigNumber.from("50");
+      await expect(bond.connect(admin).setFee(fee)).to.not.be.reverted;
+      expect(await bond.feeBps()).to.equal(fee);
+    });
+
+    it("should not take any fee if fee is 0", async () => {
+      const trancheValues = [200, 300, 500];
+      const { bond, user, tranches, mockCollateralToken } = await loadFixture(getFixture(trancheValues));
+
+      expect(await bond.feeBps()).to.equal("0");
+
+      const amount = parse("1000");
+      await mockCollateralToken.mint(await user.getAddress(), amount);
+      await mockCollateralToken.connect(user).approve(bond.address, amount);
+
+      await expect(bond.connect(user).deposit(amount)).to.not.be.reverted;
+
+      for (let i = 0; i < tranches.length; i++) {
+        const tranche = tranches[i];
+        const trancheValue = parse(trancheValues[i].toString());
+        expect(await tranche.totalSupply()).to.equal(trancheValue);
+        expect(await tranche.balanceOf(await user.getAddress())).to.equal(trancheValue);
+        expect(await tranche.balanceOf(bond.address)).to.equal(0);
+      }
+
+      expect(await mockCollateralToken.balanceOf(await user.getAddress())).to.equal(0);
+      expect(await mockCollateralToken.balanceOf(bond.address)).to.equal(amount);
+      expect(await bond.totalDebt()).to.equal(amount);
+    });
+
+    it("should take 5 bps fee", async () => {
+      const trancheValues = [200, 300, 500];
+      const { bond, admin, user, tranches, mockCollateralToken } = await loadFixture(getFixture(trancheValues));
+
+      const fee = BigNumber.from("5");
+      await expect(bond.connect(admin).setFee(fee)).to.not.be.reverted;
+
+      const amount = parse("1000");
+      await mockCollateralToken.mint(await user.getAddress(), amount);
+      await mockCollateralToken.connect(user).approve(bond.address, amount);
+
+      await expect(bond.connect(user).deposit(amount)).to.not.be.reverted;
+
+      for (let i = 0; i < tranches.length; i++) {
+        const tranche = tranches[i];
+        const trancheValue = parse(trancheValues[i].toString());
+        expect(await tranche.totalSupply()).to.equal(trancheValue);
+
+        const feeAmount = trancheValue.mul(fee).div(10000);
+        expect(await tranche.balanceOf(await user.getAddress())).to.equal(trancheValue.sub(feeAmount));
+        expect(await tranche.balanceOf(bond.address)).to.equal(feeAmount);
+      }
+
+      expect(await mockCollateralToken.balanceOf(await user.getAddress())).to.equal(0);
+      expect(await mockCollateralToken.balanceOf(bond.address)).to.equal(amount);
+      expect(await bond.totalDebt()).to.equal(amount);
+    });
+
+    it("should take 50 bps fee", async () => {
+      const trancheValues = [200, 300, 500];
+      const { bond, admin, user, tranches, mockCollateralToken } = await loadFixture(getFixture(trancheValues));
+
+      const fee = BigNumber.from("50");
+      await expect(bond.connect(admin).setFee(fee)).to.not.be.reverted;
+
+      const amount = parse("1000");
+      await mockCollateralToken.mint(await user.getAddress(), amount);
+      await mockCollateralToken.connect(user).approve(bond.address, amount);
+
+      await expect(bond.connect(user).deposit(amount)).to.not.be.reverted;
+
+      for (let i = 0; i < tranches.length; i++) {
+        const tranche = tranches[i];
+        const trancheValue = parse(trancheValues[i].toString());
+        expect(await tranche.totalSupply()).to.equal(trancheValue);
+
+        const feeAmount = trancheValue.mul(fee).div(10000);
+        expect(await tranche.balanceOf(await user.getAddress())).to.equal(trancheValue.sub(feeAmount));
+        expect(await tranche.balanceOf(bond.address)).to.equal(feeAmount);
+      }
+
+      expect(await mockCollateralToken.balanceOf(await user.getAddress())).to.equal(0);
+      expect(await mockCollateralToken.balanceOf(bond.address)).to.equal(amount);
+      expect(await bond.totalDebt()).to.equal(amount);
+    });
+
+    it("should redeem fee on maturity", async () => {
+      const trancheValues = [200, 300, 500];
+      const { bond, admin, user, tranches, mockCollateralToken } = await loadFixture(getFixture(trancheValues));
+
+      const fee = BigNumber.from("5");
+      await expect(bond.connect(admin).setFee(fee)).to.not.be.reverted;
+
+      const amount = parse("1000");
+      await mockCollateralToken.mint(await user.getAddress(), amount);
+      await mockCollateralToken.connect(user).approve(bond.address, amount);
+
+      await expect(bond.connect(user).deposit(amount)).to.not.be.reverted;
+
+      expect(await mockCollateralToken.balanceOf(await admin.getAddress())).to.equal("0");
+      await expect(bond.connect(admin).mature()).to.not.be.reverted;
+      expect(await mockCollateralToken.balanceOf(await admin.getAddress())).to.equal(amount.mul(fee).div(10000));
+
+      for (let i = 0; i < tranches.length - 1; i++) {
+        const tranche = tranches[i];
+        const trancheValue = parse(trancheValues[i].toString());
+        const feeAmount = trancheValue.mul(fee).div(10000);
+        expect(await tranche.totalSupply()).to.equal(trancheValue.sub(feeAmount));
+        expect(await mockCollateralToken.balanceOf(tranche.address)).to.equal(trancheValue.sub(feeAmount));
+      }
+    });
+
+    it("should redeem fee from multiple transactions on maturity", async () => {
+      const trancheValues = [200, 300, 500];
+      const { bond, admin, user, tranches, mockCollateralToken } = await loadFixture(getFixture(trancheValues));
+
+      const fee = BigNumber.from("5");
+      await expect(bond.connect(admin).setFee(fee)).to.not.be.reverted;
+
+      const amount = parse("1000");
+      await mockCollateralToken.mint(await user.getAddress(), amount.mul(2));
+      await mockCollateralToken.connect(user).approve(bond.address, amount.mul(2));
+
+      await expect(bond.connect(user).deposit(amount)).to.not.be.reverted;
+      await expect(bond.connect(user).deposit(amount)).to.not.be.reverted;
+
+      expect(await mockCollateralToken.balanceOf(await admin.getAddress())).to.equal("0");
+      await expect(bond.connect(admin).mature()).to.not.be.reverted;
+      expect(await mockCollateralToken.balanceOf(await admin.getAddress())).to.equal(amount.mul(2).mul(fee).div(10000));
+
+      for (let i = 0; i < tranches.length - 1; i++) {
+        const tranche = tranches[i];
+        const trancheValue = parse(trancheValues[i].toString()).mul(2);
+        const feeAmount = trancheValue.mul(fee).div(10000);
+        expect(await tranche.totalSupply()).to.equal(trancheValue.sub(feeAmount));
+        expect(await mockCollateralToken.balanceOf(tranche.address)).to.equal(trancheValue.sub(feeAmount));
+      }
+    });
+
+    it("should redeem after fees are taken", async () => {
+      const trancheValues = [200, 300, 500];
+      const { bond, admin, user, tranches, mockCollateralToken } = await loadFixture(getFixture(trancheValues));
+
+      const fee = BigNumber.from("5");
+      await expect(bond.connect(admin).setFee(fee)).to.not.be.reverted;
+
+      const amount = parse("1000");
+      await mockCollateralToken.mint(await user.getAddress(), amount);
+      await mockCollateralToken.connect(user).approve(bond.address, amount);
+
+      await expect(bond.connect(user).deposit(amount)).to.not.be.reverted;
+
+      const feeAmount = amount.mul(fee).div(10000);
+      const userTrancheBalances = trancheValues.map(value =>
+        parse(value.toString()).sub(parse(value.toString()).mul(fee).div(10000)),
+      );
+      // redeem all tranche tokens
+      expect(await mockCollateralToken.balanceOf(await user.getAddress())).to.equal("0");
+      await expect(bond.connect(user).redeem(userTrancheBalances)).to.not.be.reverted;
+      expect(await mockCollateralToken.balanceOf(await user.getAddress())).to.equal(amount.sub(feeAmount));
+
+      // mature and claim fees
+      expect(await mockCollateralToken.balanceOf(await admin.getAddress())).to.equal("0");
+      await expect(bond.connect(admin).mature()).to.not.be.reverted;
+      expect(await mockCollateralToken.balanceOf(await admin.getAddress())).to.equal(feeAmount);
+
+      for (let i = 0; i < tranches.length - 1; i++) {
+        const tranche = tranches[i];
+        expect(await tranche.totalSupply()).to.equal(0);
+        expect(await mockCollateralToken.balanceOf(tranche.address)).to.equal(0);
+      }
+    });
+
+    it("should redeemMature after fees are taken", async () => {
+      const trancheValues = [200, 300, 500];
+      const { bond, admin, user, tranches, mockCollateralToken } = await loadFixture(getFixture(trancheValues));
+
+      const fee = BigNumber.from("5");
+      await expect(bond.connect(admin).setFee(fee)).to.not.be.reverted;
+
+      const amount = parse("1000");
+      await mockCollateralToken.mint(await user.getAddress(), amount);
+      await mockCollateralToken.connect(user).approve(bond.address, amount);
+
+      await expect(bond.connect(user).deposit(amount)).to.not.be.reverted;
+
+      const feeAmount = amount.mul(fee).div(10000);
+
+      // mature and claim fees
+      expect(await mockCollateralToken.balanceOf(await admin.getAddress())).to.equal("0");
+      await expect(bond.connect(admin).mature()).to.not.be.reverted;
+      expect(await mockCollateralToken.balanceOf(await admin.getAddress())).to.equal(feeAmount);
+
+      // redeem all tranche tokens
+      const userTrancheBalances = trancheValues.map(value =>
+        parse(value.toString()).sub(parse(value.toString()).mul(fee).div(10000)),
+      );
+      expect(await mockCollateralToken.balanceOf(await user.getAddress())).to.equal("0");
+      await expect(bond.connect(user).redeemMature(tranches[0].address, userTrancheBalances[0])).to.not.be.reverted;
+      await expect(bond.connect(user).redeemMature(tranches[1].address, userTrancheBalances[1])).to.not.be.reverted;
+      await expect(bond.connect(user).redeemMature(tranches[2].address, userTrancheBalances[2])).to.not.be.reverted;
+      expect(await mockCollateralToken.balanceOf(await user.getAddress())).to.equal(amount.sub(feeAmount));
+
+      for (let i = 0; i < tranches.length - 1; i++) {
+        const tranche = tranches[i];
+        expect(await tranche.totalSupply()).to.equal(0);
+        expect(await mockCollateralToken.balanceOf(tranche.address)).to.equal(0);
+      }
+    });
+
+    it("should redeem and then redeemMature after fees are taken", async () => {
+      const trancheValues = [200, 300, 500];
+      const { bond, admin, user, tranches, mockCollateralToken } = await loadFixture(getFixture(trancheValues));
+
+      const fee = BigNumber.from("5");
+      await expect(bond.connect(admin).setFee(fee)).to.not.be.reverted;
+
+      const amount = parse("1000");
+      await mockCollateralToken.mint(await user.getAddress(), amount);
+      await mockCollateralToken.connect(user).approve(bond.address, amount);
+
+      await expect(bond.connect(user).deposit(amount)).to.not.be.reverted;
+
+      const feeAmount = amount.mul(fee).div(10000);
+
+      // redeem half tranche tokens
+      const userTrancheBalances = trancheValues.map(value =>
+        parse(value.toString()).sub(parse(value.toString()).mul(fee).div(10000)),
+      );
+      expect(await mockCollateralToken.balanceOf(await user.getAddress())).to.equal("0");
+      await expect(bond.connect(user).redeem(userTrancheBalances.map(bal => bal.div(2)))).to.not.be.reverted;
+      expect(await mockCollateralToken.balanceOf(await user.getAddress())).to.equal(
+        amount.div(2).sub(feeAmount.div(2)),
+      );
+
+      // mature and claim fees
+      expect(await mockCollateralToken.balanceOf(await admin.getAddress())).to.equal("0");
+      await expect(bond.connect(admin).mature()).to.not.be.reverted;
+      expect(await mockCollateralToken.balanceOf(await admin.getAddress())).to.equal(feeAmount);
+
+      // redeem all tranche tokens
+      await expect(bond.connect(user).redeemMature(tranches[0].address, userTrancheBalances[0].div(2))).to.not.be
+        .reverted;
+      await expect(bond.connect(user).redeemMature(tranches[1].address, userTrancheBalances[1].div(2))).to.not.be
+        .reverted;
+      await expect(bond.connect(user).redeemMature(tranches[2].address, userTrancheBalances[2].div(2))).to.not.be
+        .reverted;
+      expect(await mockCollateralToken.balanceOf(await user.getAddress())).to.equal(amount.sub(feeAmount));
+
+      for (let i = 0; i < tranches.length - 1; i++) {
+        const tranche = tranches[i];
+        expect(await tranche.totalSupply()).to.equal(0);
+        expect(await mockCollateralToken.balanceOf(tranche.address)).to.equal(0);
+      }
     });
   });
 
@@ -614,7 +918,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("81458");
+      expect(gasUsed.toString()).to.equal("81436");
     });
   });
 

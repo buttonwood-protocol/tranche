@@ -391,7 +391,7 @@ describe("Uniswap V3 Loan Router", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("473369");
+      expect(gasUsed.toString()).to.equal("477764");
     });
   });
 });
