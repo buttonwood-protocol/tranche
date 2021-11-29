@@ -13,7 +13,6 @@ contract BondFactory is IBondFactory, Context {
 
     address public immutable target;
     address public immutable trancheFactory;
-    mapping(bytes32 => address) public bonds;
 
     constructor(address _target, address _trancheFactory) {
         target = _target;
@@ -22,20 +21,61 @@ contract BondFactory is IBondFactory, Context {
 
     /**
      * @dev Deploys a minimal proxy instance for a new bond with the given parameters.
+     * @param _collateralToken The address of the ERC20 token that the bond will use as collateral
+     * @param trancheRatios the ratios that the bond will use to generate tranche tokens
+     * @param maturityDate The unix timestamp in seconds at which the bond is maturable
+     * @return  The address of the newly created bond
      */
     function createBond(
         address _collateralToken,
         uint256[] memory trancheRatios,
         uint256 maturityDate
     ) external override returns (address) {
-        bytes32 bondHash = keccak256(abi.encodePacked(_collateralToken, maturityDate, trancheRatios));
-        require(bonds[bondHash] == address(0), "BondFactory: Bond already exists");
+        return _createBond(_collateralToken, trancheRatios, maturityDate, 0);
+    }
 
+    /**
+     * @dev Deploys a minimal proxy instance for a new bond with the given parameters.
+     * @param _collateralToken The address of the ERC20 token that the bond will use as collateral
+     * @param trancheRatios the ratios that the bond will use to generate tranche tokens
+     * @param maturityDate The unix timestamp in seconds at which the bond is maturable
+     * @param depositLimit The maximum amount of collateral that can be deposited into the bond
+     * @return  The address of the newly created bond
+     */
+    function createBondWithDepositLimit(
+        address _collateralToken,
+        uint256[] memory trancheRatios,
+        uint256 maturityDate,
+        uint256 depositLimit
+    ) external returns (address) {
+        return _createBond(_collateralToken, trancheRatios, maturityDate, depositLimit);
+    }
+
+    /**
+     * @dev Deploys a minimal proxy instance for a new bond with the given parameters.
+     * @param _collateralToken The address of the ERC20 token that the bond will use as collateral
+     * @param trancheRatios the ratios that the bond will use to generate tranche tokens
+     * @param maturityDate The unix timestamp in seconds at which the bond is maturable
+     * @param depositLimit The maximum amount of collateral that can be deposited into the bond
+     * @return  The address of the newly created bond
+     */
+    function _createBond(
+        address _collateralToken,
+        uint256[] memory trancheRatios,
+        uint256 maturityDate,
+        uint256 depositLimit
+    ) internal returns (address) {
         address clone = Clones.clone(target);
-        bonds[bondHash] = clone;
-        BondController(clone).init(trancheFactory, _collateralToken, _msgSender(), trancheRatios, maturityDate);
+        BondController(clone).init(
+            trancheFactory,
+            _collateralToken,
+            _msgSender(),
+            trancheRatios,
+            maturityDate,
+            depositLimit
+        );
 
-        emit BondCreated(clone);
+        emit BondCreated(_msgSender(), clone);
         return clone;
     }
 }
