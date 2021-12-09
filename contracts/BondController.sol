@@ -95,30 +95,40 @@ contract BondController is IBondController, OwnableUpgradeable {
      */
     function deposit(uint256 amount) external override {
         require(amount > 0, "BondController: invalid amount");
-        require(totalDebt > 0 || amount >= MINIMUM_FIRST_DEPOSIT, "BondController: invalid initial amount");
+
+        // saving totalDebt in memory to minimize sloads
+        uint256 _totalDebt = totalDebt;
+        require(_totalDebt > 0 || amount >= MINIMUM_FIRST_DEPOSIT, "BondController: invalid initial amount");
         require(!isMature, "BondController: Already mature");
 
         uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(this));
         require(depositLimit == 0 || collateralBalance + amount <= depositLimit, "BondController: Deposit limit");
 
-        TransferHelper.safeTransferFrom(collateralToken, _msgSender(), address(this), amount);
-
         TrancheData[] memory _tranches = tranches;
 
         uint256 newDebt;
+        uint256[] memory trancheValues = new uint256[](trancheCount);
         for (uint256 i = 0; i < _tranches.length; i++) {
             // NOTE: solidity 0.8 checks for over/underflow natively so no need for SafeMath
             uint256 trancheValue = (amount * _tranches[i].ratio) / TRANCHE_RATIO_GRANULARITY;
 
             // if there is any collateral, we should scale by the debt:collateral ratio
             if (collateralBalance > 0) {
-                trancheValue = (trancheValue * totalDebt) / collateralBalance;
+                trancheValue = (trancheValue * _totalDebt) / collateralBalance;
             }
             newDebt += trancheValue;
+            trancheValues[i] = trancheValue;
+        }
+        totalDebt += newDebt;
 
+        TransferHelper.safeTransferFrom(collateralToken, _msgSender(), address(this), amount);
+        // saving feeBps in memory to minimize sloads
+        uint256 _feeBps = feeBps;
+        for (uint256 i = 0; i < trancheValues.length; i++) {
+            uint256 trancheValue = trancheValues[i];
             // fee tranche tokens are minted and held by the contract
             // upon maturity, they are redeemed and underlying collateral are sent to the owner
-            uint256 fee = (trancheValue * feeBps) / BPS;
+            uint256 fee = (trancheValue * _feeBps) / BPS;
             if (fee > 0) {
                 _tranches[i].token.mint(address(this), fee);
             }
@@ -126,8 +136,7 @@ contract BondController is IBondController, OwnableUpgradeable {
             _tranches[i].token.mint(_msgSender(), trancheValue - fee);
         }
 
-        totalDebt += newDebt;
-        emit Deposit(_msgSender(), amount, feeBps);
+        emit Deposit(_msgSender(), amount, _feeBps);
     }
 
     /**
