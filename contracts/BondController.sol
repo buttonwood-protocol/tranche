@@ -2,10 +2,9 @@ pragma solidity 0.8.3;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 import "./interfaces/IBondController.sol";
 import "./interfaces/ITrancheFactory.sol";
@@ -17,8 +16,13 @@ import "./interfaces/ITranche.sol";
  * Invariants:
  *  - `totalDebt` should always equal the sum of all tranche tokens' `totalSupply()`
  */
-contract BondController is IBondController, Initializable, AccessControl {
+contract BondController is IBondController, OwnableUpgradeable {
     uint256 private constant TRANCHE_RATIO_GRANULARITY = 1000;
+    // Denominator for basis points. Used to calculate fees
+    uint256 private constant BPS = 10_000;
+    // Maximum fee in terms of basis points
+    uint256 private constant MAX_FEE_BPS = 50;
+
     // to avoid precision loss and other weird math from a small initial deposit
     // we require at least a minimum initial deposit
     uint256 private constant MINIMUM_FIRST_DEPOSIT = 10e9;
@@ -35,6 +39,8 @@ contract BondController is IBondController, Initializable, AccessControl {
     // Used as a guardrail for initial launch.
     // If set to 0, no deposit limit will be enforced
     uint256 public depositLimit;
+    // Fee taken on deposit in basis points. Can be set by the contract owner
+    uint256 public override feeBps;
 
     /**
      * @dev Constructor for Tranche ERC20 token
@@ -56,7 +62,8 @@ contract BondController is IBondController, Initializable, AccessControl {
         require(_trancheFactory != address(0), "BondController: invalid trancheFactory address");
         require(_collateralToken != address(0), "BondController: invalid collateralToken address");
         require(_admin != address(0), "BondController: invalid admin address");
-        _setupRole(DEFAULT_ADMIN_ROLE, _admin);
+        __Ownable_init();
+        transferOwnership(_admin);
 
         trancheCount = trancheRatios.length;
         collateralToken = _collateralToken;
@@ -109,11 +116,18 @@ contract BondController is IBondController, Initializable, AccessControl {
             }
             newDebt += trancheValue;
 
-            _tranches[i].token.mint(_msgSender(), trancheValue);
+            // fee tranche tokens are minted and held by the contract
+            // upon maturity, they are redeemed and underlying collateral are sent to the owner
+            uint256 fee = (trancheValue * feeBps) / BPS;
+            if (fee > 0) {
+                _tranches[i].token.mint(address(this), fee);
+            }
+
+            _tranches[i].token.mint(_msgSender(), trancheValue - fee);
         }
 
         totalDebt += newDebt;
-        emit Deposit(_msgSender(), amount);
+        emit Deposit(_msgSender(), amount, feeBps);
     }
 
     /**
@@ -121,30 +135,30 @@ contract BondController is IBondController, Initializable, AccessControl {
      */
     function mature() external override {
         require(!isMature, "BondController: Already mature");
-        require(
-            hasRole(DEFAULT_ADMIN_ROLE, _msgSender()) || maturityDate < block.timestamp,
-            "BondController: Invalid call to mature"
-        );
+        require(owner() == _msgSender() || maturityDate < block.timestamp, "BondController: Invalid call to mature");
         isMature = true;
 
         TrancheData[] memory _tranches = tranches;
         uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(this));
         // Go through all tranches A-Y (not Z) delivering collateral if possible
         for (uint256 i = 0; i < _tranches.length - 1 && collateralBalance > 0; i++) {
-            uint256 trancheSupply = _tranches[i].token.totalSupply();
-            uint256 amount = Math.min(trancheSupply, collateralBalance);
-
-            TransferHelper.safeTransfer(collateralToken, address(_tranches[i].token), amount);
+            ITranche _tranche = _tranches[i].token;
+            // pay out the entire tranche token's owed collateral (equal to the supply of tranche tokens)
+            // if there is not enough collateral to pay it out, pay as much as we have
+            uint256 amount = Math.min(_tranche.totalSupply(), collateralBalance);
             collateralBalance -= amount;
+
+            TransferHelper.safeTransfer(collateralToken, address(_tranche), amount);
+
+            // redeem fees, sending output tokens to owner
+            _tranche.redeem(address(this), owner(), IERC20(_tranche).balanceOf(address(this)));
         }
 
         // Transfer any remaining collaeral to the Z tranche
         if (collateralBalance > 0) {
-            TransferHelper.safeTransfer(
-                collateralToken,
-                address(_tranches[_tranches.length - 1].token),
-                collateralBalance
-            );
+            ITranche _tranche = _tranches[_tranches.length - 1].token;
+            TransferHelper.safeTransfer(collateralToken, address(_tranche), collateralBalance);
+            _tranche.redeem(address(this), owner(), IERC20(_tranche).balanceOf(address(this)));
         }
 
         emit Mature(_msgSender());
@@ -191,6 +205,17 @@ contract BondController is IBondController, Initializable, AccessControl {
         TransferHelper.safeTransfer(collateralToken, _msgSender(), returnAmount);
 
         emit Redeem(_msgSender(), amounts);
+    }
+
+    /**
+     * @inheritdoc IBondController
+     */
+    function setFee(uint256 newFeeBps) external override onlyOwner {
+        require(!isMature, "BondController: Invalid call to setFee");
+        require(newFeeBps <= MAX_FEE_BPS, "BondController: New fee too high");
+        feeBps = newFeeBps;
+
+        emit FeeUpdate(newFeeBps);
     }
 
     /**
