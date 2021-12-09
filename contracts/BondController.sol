@@ -31,6 +31,11 @@ contract BondController is IBondController, Initializable, AccessControl {
     bool public isMature;
     uint256 public totalDebt;
 
+    // Maximum amount of collateral that can be deposited into this bond
+    // Used as a guardrail for initial launch.
+    // If set to 0, no deposit limit will be enforced
+    uint256 public depositLimit;
+
     /**
      * @dev Constructor for Tranche ERC20 token
      * @param _trancheFactory The address of the tranche factory
@@ -38,13 +43,15 @@ contract BondController is IBondController, Initializable, AccessControl {
      * @param _admin The address of the initial admin for this contract
      * @param trancheRatios The tranche ratios for this bond
      * @param _maturityDate The date timestamp in seconds at which this bond matures
+     * @param _depositLimit The maximum amount of collateral that can be deposited. 0 if no limit
      */
     function init(
         address _trancheFactory,
         address _collateralToken,
         address _admin,
         uint256[] memory trancheRatios,
-        uint256 _maturityDate
+        uint256 _maturityDate,
+        uint256 _depositLimit
     ) external initializer {
         require(_trancheFactory != address(0), "BondController: invalid trancheFactory address");
         require(_collateralToken != address(0), "BondController: invalid collateralToken address");
@@ -73,6 +80,7 @@ contract BondController is IBondController, Initializable, AccessControl {
         require(totalRatio == TRANCHE_RATIO_GRANULARITY, "BondController: Invalid tranche ratios");
         require(_maturityDate > block.timestamp, "BondController: Invalid maturity date");
         maturityDate = _maturityDate;
+        depositLimit = _depositLimit;
     }
 
     /**
@@ -82,7 +90,10 @@ contract BondController is IBondController, Initializable, AccessControl {
         require(amount > 0, "BondController: invalid amount");
         require(totalDebt > 0 || amount >= MINIMUM_FIRST_DEPOSIT, "BondController: invalid initial amount");
         require(!isMature, "BondController: Already mature");
+
         uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(this));
+        require(depositLimit == 0 || collateralBalance + amount <= depositLimit, "BondController: Deposit limit");
+
         TransferHelper.safeTransferFrom(collateralToken, _msgSender(), address(this), amount);
 
         TrancheData[] memory _tranches = tranches;

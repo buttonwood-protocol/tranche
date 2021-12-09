@@ -30,7 +30,7 @@ contract BondConfigVault is IBondConfigVault, Ownable {
         uint256[] memory trancheRatios_,
         uint256 duration_
     ) private pure returns (bytes32) {
-        return keccak256(abi.encodePacked(collateralToken_, trancheRatios_, duration_));
+        return keccak256(abi.encode(collateralToken_, trancheRatios_, duration_));
     }
 
     /**

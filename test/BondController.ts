@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import hre, { waffle } from "hardhat";
-import { Signer } from "ethers";
-import * as _ from "lodash";
+import _ from "lodash";
+import { BigNumber, Signer } from "ethers";
 import { Fixture } from "ethereum-waffle";
 import { deploy } from "./utils/contracts";
 import { BlockchainTime } from "./utils/time";
@@ -29,7 +29,7 @@ describe("Bond Controller", () => {
   /**
    * Sets up a test context, deploying new contracts and returning them for use in a test
    */
-  const setupTestContext = async (tranches: number[]): Promise<TestContext> => {
+  const setupTestContext = async (tranches: number[], depositLimit?: BigNumber): Promise<TestContext> => {
     const signers: Signer[] = await hre.ethers.getSigners();
     const [user, other, admin] = signers;
 
@@ -42,10 +42,24 @@ describe("Bond Controller", () => {
     );
 
     const mockCollateralToken = <MockERC20>await deploy("MockERC20", admin, ["Mock ERC20", "MOCK"]);
-    const tx = await bondFactory
-      .connect(admin)
-      .createBond(mockCollateralToken.address, tranches, await time.secondsFromNow(10000));
-    const receipt = await tx.wait();
+
+    let receipt;
+    if (depositLimit) {
+      const tx = await bondFactory
+        .connect(admin)
+        .createBondWithDepositLimit(
+          mockCollateralToken.address,
+          tranches,
+          await time.secondsFromNow(10000),
+          depositLimit,
+        );
+      receipt = await tx.wait();
+    } else {
+      const tx = await bondFactory
+        .connect(admin)
+        .createBond(mockCollateralToken.address, tranches, await time.secondsFromNow(10000));
+      receipt = await tx.wait();
+    }
 
     let bond: BondController | undefined;
     if (receipt && receipt.events) {
@@ -116,28 +130,6 @@ describe("Bond Controller", () => {
           .connect(admin)
           .createBond(hre.ethers.constants.AddressZero, tranches, await time.secondsFromNow(10000)),
       ).to.be.revertedWith("BondController: invalid collateralToken address");
-    });
-
-    it("should fail if a bond has already been created", async () => {
-      const signers: Signer[] = await hre.ethers.getSigners();
-
-      const trancheImplementation = <Tranche>await deploy("Tranche", signers[0], []);
-      const trancheFactory = <TrancheFactory>(
-        await deploy("TrancheFactory", signers[0], [trancheImplementation.address])
-      );
-
-      const bondImplementation = <BondController>await deploy("BondController", signers[0], []);
-      const bondFactory = <BondFactory>(
-        await deploy("BondFactory", signers[0], [bondImplementation.address, trancheFactory.address])
-      );
-
-      const mockCollateralToken = <MockERC20>await deploy("MockERC20", signers[0], ["Mock ERC20", "MOCK"]);
-      const maturityDate = await time.secondsFromNow(10000);
-      await bondFactory.connect(signers[0]).createBond(mockCollateralToken.address, [200, 300, 500], maturityDate);
-
-      await expect(
-        bondFactory.connect(signers[0]).createBond(mockCollateralToken.address, [200, 300, 500], maturityDate),
-      ).to.be.revertedWith("BondFactory: Bond already exists");
     });
 
     it("should fail if maturity date is already passed", async () => {
@@ -219,7 +211,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("932363");
+      expect(gasUsed.toString()).to.equal("912105");
     });
   });
 
@@ -403,6 +395,38 @@ describe("Bond Controller", () => {
       );
     });
 
+    it("should fail to deposit beyond limit", async () => {
+      const trancheValues = [200, 300, 500];
+      const depositLimit = parse("100");
+      const { bond, mockCollateralToken, user } = await setupTestContext(trancheValues, depositLimit);
+
+      const amount = parse("50");
+      await mockCollateralToken.mint(await user.getAddress(), amount.mul(3));
+      await mockCollateralToken.connect(user).approve(bond.address, amount.mul(3));
+
+      await expect(bond.connect(user).deposit(amount)).to.not.be.reverted;
+      await expect(bond.connect(user).deposit(amount)).to.not.be.reverted;
+      await expect(bond.connect(user).deposit(amount)).to.be.revertedWith("BondController: Deposit limit");
+    });
+
+    it("should succeed if deposit limit is exceeded, then a redemption occurs", async () => {
+      const trancheValues = [200, 300, 500];
+      const depositLimit = parse("100");
+      const { bond, mockCollateralToken, user } = await setupTestContext(trancheValues, depositLimit);
+
+      const amount = parse("50");
+      await mockCollateralToken.mint(await user.getAddress(), amount.mul(3));
+      await mockCollateralToken.connect(user).approve(bond.address, amount.mul(3));
+
+      await expect(bond.connect(user).deposit(amount)).to.not.be.reverted;
+      await expect(bond.connect(user).deposit(amount)).to.not.be.reverted;
+      await expect(bond.connect(user).deposit(amount)).to.be.revertedWith("BondController: Deposit limit");
+
+      // redeem to lower the locked collateral, then deposit should work again
+      await expect(bond.connect(user).redeem([parse("10"), parse("15"), parse("25")])).to.not.be.reverted;
+      await expect(bond.connect(user).deposit(amount)).to.not.be.reverted;
+    });
+
     it("gas [ @skip-on-coverage ]", async () => {
       const trancheValues = [200, 300, 500];
       const { bond, mockCollateralToken, user } = await loadFixture(async () => await setupTestContext(trancheValues));
@@ -414,7 +438,7 @@ describe("Bond Controller", () => {
       const tx = await bond.connect(user).deposit(amount);
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("262669");
+      expect(gasUsed.toString()).to.equal("264806");
     });
   });
 

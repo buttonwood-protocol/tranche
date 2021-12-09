@@ -89,13 +89,10 @@ describe("BondConfigVault", () => {
     it("Adding 2 bonds and minting them", async () => {
       const { bondMinter, mockBondFactory, mockUnderlyingToken } = await setupTestContext();
 
-      await expect(bondMinter.addBondConfig(mockUnderlyingToken.address, [100, 200, 700], 100));
-      await expect(bondMinter.addBondConfig(mockUnderlyingToken.address, [200, 300, 500], 300));
+      await expect(bondMinter.addBondConfig(mockUnderlyingToken.address, [100, 200, 700], 100)).to.not.be.reverted;
+      await expect(bondMinter.addBondConfig(mockUnderlyingToken.address, [200, 300, 500], 300)).to.not.be.reverted;
 
-      const blockNumBefore = await ethers.provider.getBlockNumber();
-      const blockBefore = await ethers.provider.getBlock(blockNumBefore);
-      const timestampBefore = blockBefore.timestamp;
-      const timestampAfter = timestampBefore + 999;
+      const timestampAfter = await time.secondsFromNow(999);
 
       await mockBondFactory.mock.createBond
         .withArgs(mockUnderlyingToken.address, [100, 200, 700], timestampAfter + 100)
@@ -115,12 +112,9 @@ describe("BondConfigVault", () => {
     it("Minting same bond twice after waiting the exact waiting period", async () => {
       const { bondMinter, mockBondFactory, mockUnderlyingToken } = await setupTestContext();
 
-      await expect(bondMinter.addBondConfig(mockUnderlyingToken.address, [100, 200, 700], 100));
+      await expect(bondMinter.addBondConfig(mockUnderlyingToken.address, [100, 200, 700], 100)).to.not.be.reverted;
 
-      const blockNumBefore = await ethers.provider.getBlockNumber();
-      const blockBefore = await ethers.provider.getBlock(blockNumBefore);
-      const timestampBefore = blockBefore.timestamp;
-      const timestampAfter = timestampBefore + 999;
+      const timestampAfter = await time.secondsFromNow(999);
 
       await mockBondFactory.mock.createBond
         .withArgs(mockUnderlyingToken.address, [100, 200, 700], timestampAfter + 100)
@@ -144,12 +138,9 @@ describe("BondConfigVault", () => {
     it("Minting same bond twice too soon should revert", async () => {
       const { bondMinter, mockBondFactory, mockUnderlyingToken } = await setupTestContext();
 
-      await expect(bondMinter.addBondConfig(mockUnderlyingToken.address, [100, 200, 700], 100));
+      await expect(bondMinter.addBondConfig(mockUnderlyingToken.address, [100, 200, 700], 100)).to.not.be.reverted;
 
-      const blockNumBefore = await ethers.provider.getBlockNumber();
-      const blockBefore = await ethers.provider.getBlock(blockNumBefore);
-      const timestampBefore = blockBefore.timestamp;
-      const timestampAfter = timestampBefore + 999;
+      const timestampAfter = await time.secondsFromNow(999);
 
       await mockBondFactory.mock.createBond
         .withArgs(mockUnderlyingToken.address, [100, 200, 700], timestampAfter + 100)
