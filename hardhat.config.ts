@@ -6,6 +6,7 @@ import "solidity-coverage";
 
 import "./tasks/accounts";
 import "./tasks/clean";
+import "./tasks/deployers";
 
 import { resolve } from "path";
 
@@ -55,6 +56,9 @@ function createTestnetConfig(network: keyof typeof chainIds): NetworkUserConfig 
 }
 
 const config: HardhatUserConfig = {
+  etherscan: {
+    apiKey: process.env.ETHERSCAN_API_KEY,
+  },
   defaultNetwork: "hardhat",
   gasReporter: {
     currency: "USD",
