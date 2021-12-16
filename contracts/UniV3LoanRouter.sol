@@ -30,7 +30,7 @@ contract UniV3LoanRouter is LoanRouter {
             ISwapRouter.ExactInputSingleParams(
                 address(input),
                 address(output),
-                3000,
+                10000,
                 address(this),
                 block.timestamp,
                 amount,
