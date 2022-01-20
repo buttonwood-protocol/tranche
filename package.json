@@ -79,6 +79,8 @@
     "solc-0.8": "npm:solc@0.8.3",
     "solidity-docgen": "^0.5.13",
     "test": "hardhat test",
+    "forge:build": "forge build --hardhat -o out",
+    "forge:test": "yarn forge:build && forge test --hardhat -o out",
     "typechain": "hardhat typechain"
   },
   "dependencies": {

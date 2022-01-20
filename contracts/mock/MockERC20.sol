@@ -2,9 +2,9 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/Context.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import "../external/ERC20.sol";
 
-contract MockERC20 is Context, ERC20Burnable {
+contract MockERC20 is Context, ERC20 {
     uint256 private constant MULTIPLIER_GRANULARITY = 10000;
     uint256 public multiplier = 10000;
 

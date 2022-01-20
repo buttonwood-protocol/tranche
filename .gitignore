@@ -5,12 +5,13 @@
 artifacts/
 build/
 cache/
+hardhat-cache/
 coverage/
 dist/
-lib/
 node_modules/
 typechain/
 .idea/
+out/
 
 # files
 *.env

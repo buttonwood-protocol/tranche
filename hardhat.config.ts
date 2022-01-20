@@ -80,7 +80,7 @@ const config: HardhatUserConfig = {
   },
   paths: {
     artifacts: "./artifacts",
-    cache: "./cache",
+    cache: "./hardhat-cache",
     sources: "./contracts",
     tests: "./test",
   },
