@@ -4,8 +4,8 @@ import "./LoanRouter.sol";
 import "./interfaces/IBondController.sol";
 import "./interfaces/ITranche.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "./external/ISwapRouter.sol";
 
 /**
  * @dev Loan router for the UniswapV3 AMM

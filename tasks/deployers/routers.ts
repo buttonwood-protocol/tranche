@@ -18,9 +18,16 @@ task("deploy:Routers").setAction(async function (_args: TaskArguments, hre) {
 
   console.log("UniswapV2 Router deployed to: ", uniV2LoanRouter.address);
 
+  const UniV2LeverageRouter = await hre.ethers.getContractFactory("UniV2LeverageRouter");
+  const uniV2LeverageRouter = await UniV2LeverageRouter.deploy(UNISWAP_V2_ROUTER);
+  await uniV2LeverageRouter.deployed();
+
+  console.log("UniswapV2 Leverage Router deployed to: ", uniV2LeverageRouter.address);
+
   try {
     await hre.run("verify:UniLoanRouter", { address: uniV3LoanRouter.address, swapRouter: UNISWAP_V3_ROUTER });
     await hre.run("verify:UniLoanRouter", { address: uniV3LoanRouter.address, swapRouter: UNISWAP_V2_ROUTER });
+    await hre.run("verify:UniLoanRouter", { address: uniV2LeverageRouter.address, swapRouter: UNISWAP_V2_ROUTER });
   } catch (e) {
     console.log("Unable to verify on etherscan", e);
   }

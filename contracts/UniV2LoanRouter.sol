@@ -4,16 +4,16 @@ import "./LoanRouter.sol";
 import "./interfaces/IBondController.sol";
 import "./interfaces/ITranche.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
+import "./external/IUniswapV2Router.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @dev Loan router for the UniswapV2 AMM
  */
 contract UniV2LoanRouter is LoanRouter {
-    IUniswapV2Router02 public uniswapV2Router;
+    IUniswapV2Router public uniswapV2Router;
 
-    constructor(IUniswapV2Router02 _uniswapV2Router) {
+    constructor(IUniswapV2Router _uniswapV2Router) {
         uniswapV2Router = _uniswapV2Router;
     }
 
