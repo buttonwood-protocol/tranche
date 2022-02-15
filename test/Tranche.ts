@@ -63,6 +63,7 @@ describe("Tranche Token", () => {
       expect(await tranche.decimals()).to.equal(18);
       // ensure user has admin permissions
       expect(await tranche.hasRole(hre.ethers.constants.HashZero, await user.getAddress())).to.be.true;
+      expect(await tranche.bondController()).to.eq(await user.getAddress());
     });
 
     it("should fail to initialize with zero address collateralToken", async () => {
@@ -81,6 +82,7 @@ describe("Tranche Token", () => {
       expect(await tranche.decimals()).to.equal(8);
       // ensure user has admin permissions
       expect(await tranche.hasRole(hre.ethers.constants.HashZero, await user.getAddress())).to.be.true;
+      expect(await tranche.bondController()).to.eq(await user.getAddress());
     });
   });
 

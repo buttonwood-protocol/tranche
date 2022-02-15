@@ -14,12 +14,14 @@ import "./external/ERC20.sol";
  */
 contract Tranche is ITranche, ERC20, Initializable, AccessControl {
     address public collateralToken;
+    address public bondController;
 
     /**
      * @dev Constructor for Tranche ERC20 token
      */
     constructor() ERC20("IMPLEMENTATION", "IMPL") {
         collateralToken = address(0x0);
+        bondController = address(0x0);
     }
 
     /**
@@ -40,6 +42,7 @@ contract Tranche is ITranche, ERC20, Initializable, AccessControl {
         super.init(name, symbol);
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
         collateralToken = _collateralToken;
+        bondController = admin;
     }
 
     /**
