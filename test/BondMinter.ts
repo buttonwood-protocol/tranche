@@ -104,7 +104,7 @@ describe("BondConfigVault", () => {
 
       await time.setNextBlockTimestamp(timestampAfter);
 
-      expect(await bondMinter.mintBonds())
+      await expect(bondMinter.mintBonds())
         .to.emit(bondMinter, "BondMinted")
         .withArgs("0x0000000000000000000000000000000000000001")
         .to.emit(bondMinter, "BondMinted")
@@ -128,7 +128,7 @@ describe("BondConfigVault", () => {
 
       await time.setNextBlockTimestamp(timestampAfter);
 
-      expect(await bondMinter.mintBonds())
+      await expect(bondMinter.mintBonds())
         .to.emit(bondMinter, "BondMinted")
         .withArgs("0x0000000000000000000000000000000000000001");
 
@@ -141,7 +141,7 @@ describe("BondConfigVault", () => {
 
       await time.setNextBlockTimestamp(timestampAfter + DAYS_30);
 
-      expect(await bondMinter.mintBonds())
+      await expect(bondMinter.mintBonds())
         .to.emit(bondMinter, "BondMinted")
         .withArgs("0x0000000000000000000000000000000000000002");
 
