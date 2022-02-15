@@ -104,8 +104,14 @@ describe("BondConfigVault", () => {
 
       await time.setNextBlockTimestamp(timestampAfter);
 
-      await bondMinter.mintBonds();
+      expect(await bondMinter.mintBonds())
+        .to.emit(bondMinter, "BondMinted")
+        .withArgs("0x0000000000000000000000000000000000000001")
+        .to.emit(bondMinter, "BondMinted")
+        .withArgs("0x0000000000000000000000000000000000000002");
 
+      expect(await bondMinter.isInstance("0x0000000000000000000000000000000000000001")).to.be.true;
+      expect(await bondMinter.isInstance("0x0000000000000000000000000000000000000002")).to.be.true;
       expect(await bondMinter.lastMintTimestamp()).to.eq(timestampAfter);
     });
 
@@ -122,7 +128,12 @@ describe("BondConfigVault", () => {
 
       await time.setNextBlockTimestamp(timestampAfter);
 
-      await bondMinter.mintBonds();
+      expect(await bondMinter.mintBonds())
+        .to.emit(bondMinter, "BondMinted")
+        .withArgs("0x0000000000000000000000000000000000000001");
+
+      expect(await bondMinter.isInstance("0x0000000000000000000000000000000000000001")).to.be.true;
+      expect(await bondMinter.isInstance("0x0000000000000000000000000000000000000002")).to.be.false;
 
       await mockBondFactory.mock.createBond
         .withArgs(mockUnderlyingToken.address, [100, 200, 700], timestampAfter + DAYS_30 + 100)
@@ -130,7 +141,12 @@ describe("BondConfigVault", () => {
 
       await time.setNextBlockTimestamp(timestampAfter + DAYS_30);
 
-      await bondMinter.mintBonds();
+      expect(await bondMinter.mintBonds())
+        .to.emit(bondMinter, "BondMinted")
+        .withArgs("0x0000000000000000000000000000000000000002");
+
+      expect(await bondMinter.isInstance("0x0000000000000000000000000000000000000001")).to.be.true;
+      expect(await bondMinter.isInstance("0x0000000000000000000000000000000000000002")).to.be.true;
 
       expect(await bondMinter.lastMintTimestamp()).to.eq(timestampAfter + DAYS_30);
     });

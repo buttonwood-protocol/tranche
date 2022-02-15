@@ -17,6 +17,9 @@ contract BondMinter is IBondMinter, Ownable, BondConfigVault {
     /// @notice Minimum waiting period (in second) between mints allowed
     uint256 public waitingPeriod;
 
+    /// @dev The bonds created by this minter
+    mapping(address => bool) private _mintedBonds;
+
     /**
      * @notice Constructor for IBondMinter
      * @param _bondFactory bondFactory that will be used for minting bonds
@@ -57,11 +60,22 @@ contract BondMinter is IBondMinter, Ownable, BondConfigVault {
 
         for (uint256 i = 0; i < numConfigs(); i++) {
             BondConfig memory bondConfig = bondConfigAt(i);
-            bondFactory.createBond(
+            address bond = bondFactory.createBond(
                 bondConfig.collateralToken,
                 bondConfig.trancheRatios,
                 block.timestamp + bondConfig.duration
             );
+
+            _mintedBonds[bond] = true;
+
+            emit BondMinted(bond);
         }
+    }
+
+    /**
+     * @inheritdoc IBondMinter
+     */
+    function isInstance(address bond) external view override returns (bool) {
+        return _mintedBonds[bond];
     }
 }

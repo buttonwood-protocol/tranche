@@ -9,6 +9,12 @@ import "./IBondFactory.sol";
  */
 interface IBondMinter is IBondConfigVault {
     /**
+     * @notice Event emitted when a new bond is minted using this minter
+     * @param bond The address of the newly minted bond
+     */
+    event BondMinted(address bond);
+
+    /**
      * @notice Sets the bondFactory
      * @param _bondFactory The bondFactory that will be used mint the bonds
      */
@@ -24,4 +30,9 @@ interface IBondMinter is IBondConfigVault {
      * @notice Iterates over configurations and mints bonds for each using the bondFactory
      */
     function mintBonds() external;
+
+    /**
+     * @notice Checks if a given bond was instantiated by the minter
+     */
+    function isInstance(address bond) external view returns (bool);
 }
