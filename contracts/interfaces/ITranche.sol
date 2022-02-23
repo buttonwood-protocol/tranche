@@ -10,6 +10,12 @@ import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
  */
 interface ITranche is IERC20 {
     /**
+     * @dev returns the BondController address which owns this Tranche contract
+     *  It should have admin permissions to call mint, burn, and redeem functions
+     */
+    function bond() external view returns (address);
+
+    /**
      * @dev Mint `amount` tokens to `to`
      *  Only callable by the owner (bond controller). Used to
      *  manage bonds, specifically creating tokens upon deposit
