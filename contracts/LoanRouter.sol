@@ -3,6 +3,7 @@ pragma solidity ^0.8.3;
 import "./interfaces/ILoanRouter.sol";
 import "./interfaces/IBondController.sol";
 import "./interfaces/ITranche.sol";
+import "./interfaces/IButtonWrapper.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -19,6 +20,50 @@ abstract contract LoanRouter is ILoanRouter {
     /**
      * @inheritdoc ILoanRouter
      */
+    function wrapAndBorrow(
+        uint256 underlyingAmount,
+        IBondController bond,
+        IERC20 currency,
+        uint256[] memory sales,
+        uint256 minOutput
+    ) external override returns (uint256 amountOut) {
+        IButtonWrapper wrapper = IButtonWrapper(bond.collateralToken());
+        IERC20 underlying = IERC20(wrapper.underlying());
+        SafeERC20.safeTransferFrom(underlying, msg.sender, address(this), underlyingAmount);
+        underlying.approve(address(wrapper), underlyingAmount);
+        uint256 wrapperAmount = wrapper.deposit(underlyingAmount);
+
+        return _borrow(wrapperAmount, bond, IERC20(address(wrapper)), currency, sales, minOutput);
+    }
+
+    /**
+     * @inheritdoc ILoanRouter
+     */
+    function wrapAndBorrowMax(
+        uint256 underlyingAmount,
+        IBondController bond,
+        IERC20 currency,
+        uint256 minOutput
+    ) external override returns (uint256 amountOut) {
+        uint256 trancheCount = bond.trancheCount();
+        uint256[] memory sales = new uint256[](trancheCount);
+        // sell all tokens except the last one (Z token)
+        for (uint256 i = 0; i < trancheCount - 1; i++) {
+            sales[i] = MAX_UINT256;
+        }
+
+        IButtonWrapper wrapper = IButtonWrapper(bond.collateralToken());
+        IERC20 underlying = IERC20(wrapper.underlying());
+        SafeERC20.safeTransferFrom(underlying, msg.sender, address(this), underlyingAmount);
+        underlying.approve(address(wrapper), underlyingAmount);
+        uint256 wrapperAmount = wrapper.deposit(underlyingAmount);
+
+        return _borrow(wrapperAmount, bond, IERC20(address(wrapper)), currency, sales, minOutput);
+    }
+
+    /**
+     * @inheritdoc ILoanRouter
+     */
     function borrow(
         uint256 amount,
         IBondController bond,
@@ -26,7 +71,10 @@ abstract contract LoanRouter is ILoanRouter {
         uint256[] memory sales,
         uint256 minOutput
     ) external override returns (uint256 amountOut) {
-        return _borrow(amount, bond, currency, sales, minOutput);
+        IERC20 collateral = IERC20(bond.collateralToken());
+        SafeERC20.safeTransferFrom(collateral, msg.sender, address(this), amount);
+
+        return _borrow(amount, bond, collateral, currency, sales, minOutput);
     }
 
     /**
@@ -45,7 +93,10 @@ abstract contract LoanRouter is ILoanRouter {
             sales[i] = MAX_UINT256;
         }
 
-        return _borrow(amount, bond, currency, sales, minOutput);
+        IERC20 collateral = IERC20(bond.collateralToken());
+        SafeERC20.safeTransferFrom(collateral, msg.sender, address(this), amount);
+
+        return _borrow(amount, bond, collateral, currency, sales, minOutput);
     }
 
     /**
@@ -60,14 +111,12 @@ abstract contract LoanRouter is ILoanRouter {
     function _borrow(
         uint256 amount,
         IBondController bond,
+        IERC20 collateral,
         IERC20 currency,
         uint256[] memory sales,
         uint256 minOutput
     ) internal returns (uint256 amountOut) {
-        IERC20 collateral = IERC20(bond.collateralToken());
         require(address(collateral) != address(currency), "LoanRouter: Invalid currency");
-
-        SafeERC20.safeTransferFrom(collateral, msg.sender, address(this), amount);
         collateral.approve(address(bond), amount);
         bond.deposit(amount);
 
