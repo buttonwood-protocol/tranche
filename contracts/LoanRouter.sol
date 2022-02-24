@@ -1,4 +1,4 @@
-pragma solidity ^0.8.3;
+pragma solidity ^0.8.4;
 
 import "./interfaces/ILoanRouter.sol";
 import "./interfaces/IBondController.sol";

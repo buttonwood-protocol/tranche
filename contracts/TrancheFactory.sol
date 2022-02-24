@@ -1,6 +1,6 @@
-pragma solidity 0.8.3;
+pragma solidity 0.8.4;
 
-import "@openzeppelin/contracts/proxy/Clones.sol";
+import "clones-with-immutable-args/ClonesWithImmutableArgs.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "./Tranche.sol";
 import "./interfaces/ITrancheFactory.sol";
@@ -25,8 +25,9 @@ contract TrancheFactory is ITrancheFactory, Context {
         string memory symbol,
         address _collateralToken
     ) external override returns (address) {
-        address clone = Clones.clone(target);
-        Tranche(clone).init(name, symbol, _msgSender(), _collateralToken);
+        bytes memory data = abi.encodePacked(_collateralToken);
+        address clone = ClonesWithImmutableArgs.clone(target, data);
+        Tranche(clone).init(name, symbol, _msgSender());
         emit TrancheCreated(clone);
         return clone;
     }

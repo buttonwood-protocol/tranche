@@ -1,4 +1,4 @@
-pragma solidity 0.8.3;
+pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -9,6 +9,8 @@ import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
  *
  */
 interface ITranche is IERC20 {
+    function collateralToken() external pure returns (address);
+
     /**
      * @dev returns the BondController address which owns this Tranche contract
      *  It should have admin permissions to call mint, burn, and redeem functions

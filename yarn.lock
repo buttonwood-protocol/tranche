@@ -2990,6 +2990,11 @@ clone@2.1.2, clone@^2.0.0:
   resolved "https://registry.yarnpkg.com/clone/-/clone-2.1.2.tgz#1b7f4b9f591f1e8f83670401600345a02887435f"
   integrity sha1-G39Ln1kfHo+DZwQBYANFoCiHQ18=
 
+clones-with-immutable-args@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/clones-with-immutable-args/-/clones-with-immutable-args-1.0.0.tgz#f2ddaa02214575ceae35f7bfbf976a528d455e3b"
+  integrity sha512-DYv2cgcmNuNaxa00Q/HSWAnsIc8H0mMjZHyGHxHUuyj3JoApOS2dcEb9SQ53qCy3SvDAhKZdaHSNHxbLvlIawg==
+
 code-point-at@^1.0.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/code-point-at/-/code-point-at-1.1.0.tgz#0d070b4d043a5bea33a2f1a40e2edb3d9a4ccf77"
@@ -9321,10 +9326,10 @@ snapdragon@^0.8.1:
     source-map-resolve "^0.5.0"
     use "^3.1.0"
 
-"solc-0.8@npm:solc@0.8.3":
-  version "0.8.3"
-  resolved "https://registry.yarnpkg.com/solc/-/solc-0.8.3.tgz#896fdca2f0c4ccf18ff7a99f8183a5a1a8f6345c"
-  integrity sha512-VZvSHtwe2zAsoviClIpWjvrg22bIZ0pLtzFrYD9BtPfR7mhMZYwpptnzRizNaSvMngTR+gB9Ul8IyL5xaC7+jw==
+"solc-0.8@npm:solc@0.8.4":
+  version "0.8.4"
+  resolved "https://registry.yarnpkg.com/solc/-/solc-0.8.4.tgz#c7e606e5fc07f3fe37414bc3dd868404399ea8bb"
+  integrity sha512-krEdbucX9yY362l79gXTK2UHhsZ02aQjQOYTzcgTd/waApueo3yWGzjX0CDJ1ByOuW46WuKAyzfbRWdFNr6OYQ==
   dependencies:
     command-exists "^1.2.8"
     commander "3.0.2"

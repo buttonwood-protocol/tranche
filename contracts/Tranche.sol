@@ -1,9 +1,10 @@
-pragma solidity 0.8.3;
+pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import "clones-with-immutable-args/Clone.sol";
 import "./interfaces/ITranche.sol";
 import "./external/ERC20.sol";
 
@@ -11,35 +12,34 @@ import "./external/ERC20.sol";
  * @dev ERC20 token to represent a single tranche for a ButtonTranche bond
  * Note: this contract has non-transferrable ownership given at init-time
  */
-contract Tranche is ITranche, ERC20, Initializable {
-    address public collateralToken;
+contract Tranche is ITranche, ERC20, Initializable, Clone {
     address public override bond;
+
+    // Address of the collateral token
+    function collateralToken() public pure override returns (address) {
+        return _getArgAddress(0);
+    }
 
     /**
      * @dev Constructor for Tranche ERC20 token
      */
-    constructor() ERC20("IMPLEMENTATION", "IMPL") {
-        collateralToken = address(0x0);
-    }
+    constructor() ERC20("IMPLEMENTATION", "IMPL") {}
 
     /**
      * @dev Constructor for Tranche ERC20 token
      * @param name the ERC20 token name
      * @param symbol The ERC20 token symbol
-     * @param _bond The BondController which owns this Tranche token
-     * @param _collateralToken The address of the ERC20 collateral token
+     * @param _bond The bond owner of this ERC20 token
      */
     function init(
         string memory name,
         string memory symbol,
-        address _bond,
-        address _collateralToken
+        address _bond
     ) public initializer {
         require(_bond != address(0), "Tranche: invalid bond address");
-        require(_collateralToken != address(0), "Tranche: invalid collateralToken address");
+        require(collateralToken() != address(0), "Tranche: invalid collateralToken address");
 
         bond = _bond;
-        collateralToken = _collateralToken;
 
         super.init(name, symbol);
     }
@@ -76,10 +76,10 @@ contract Tranche is ITranche, ERC20, Initializable {
     ) external override onlyBond {
         // calculate collateral return value as the proportion of total supply redeemed
         // NOTE: solidity 0.8 has built-in overflow checking so SafeMath is not necessary
-        uint256 collateralAmount = (IERC20(collateralToken).balanceOf(address(this)) * amount) / totalSupply();
+        uint256 collateralAmount = (IERC20(collateralToken()).balanceOf(address(this)) * amount) / totalSupply();
 
         _burn(from, amount);
-        TransferHelper.safeTransfer(collateralToken, to, collateralAmount);
+        TransferHelper.safeTransfer(collateralToken(), to, collateralAmount);
     }
 
     /**
@@ -94,6 +94,6 @@ contract Tranche is ITranche, ERC20, Initializable {
      * {IERC20-balanceOf} and {IERC20-transfer}.
      */
     function decimals() public view override returns (uint8) {
-        return IERC20Metadata(collateralToken).decimals();
+        return IERC20Metadata(collateralToken()).decimals();
     }
 }

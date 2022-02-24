@@ -1,4 +1,4 @@
-pragma solidity 0.8.3;
+pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
+import "clones-with-immutable-args/Clone.sol";
 import "./interfaces/IBondController.sol";
 import "./interfaces/ITrancheFactory.sol";
 import "./interfaces/ITranche.sol";
@@ -16,7 +17,7 @@ import "./interfaces/ITranche.sol";
  * Invariants:
  *  - `totalDebt` should always equal the sum of all tranche tokens' `totalSupply()`
  */
-contract BondController is IBondController, OwnableUpgradeable {
+contract BondController is IBondController, OwnableUpgradeable, Clone {
     uint256 private constant TRANCHE_RATIO_GRANULARITY = 1000;
     // Denominator for basis points. Used to calculate fees
     uint256 private constant BPS = 10_000;
@@ -27,48 +28,54 @@ contract BondController is IBondController, OwnableUpgradeable {
     // we require at least a minimum initial deposit
     uint256 private constant MINIMUM_FIRST_DEPOSIT = 10e9;
 
-    address public override collateralToken;
     TrancheData[] public override tranches;
     uint256 public override trancheCount;
     mapping(address => bool) public trancheTokenAddresses;
-    uint256 public creationDate;
-    uint256 public maturityDate;
     bool public isMature;
     uint256 public totalDebt;
+    uint256 public creationDate;
+
+    // Fee taken on deposit in basis points. Can be set by the contract owner
+    uint256 public override feeBps;
+
+    // Address of the collateral token
+    function collateralToken() public pure override returns (address) {
+        return _getArgAddress(0);
+    }
+
+    // Date at which this bond expires
+    function maturityDate() public pure override returns (uint256) {
+        return _getArgUint256(20);
+    }
 
     // Maximum amount of collateral that can be deposited into this bond
     // Used as a guardrail for initial launch.
     // If set to 0, no deposit limit will be enforced
-    uint256 public depositLimit;
-    // Fee taken on deposit in basis points. Can be set by the contract owner
-    uint256 public override feeBps;
+    function depositLimit() public pure override returns (uint256) {
+        return _getArgUint256(52);
+    }
 
     /**
      * @dev Constructor for Tranche ERC20 token
      * @param _trancheFactory The address of the tranche factory
-     * @param _collateralToken The address of the ERC20 collateral token
      * @param _admin The address of the initial admin for this contract
      * @param trancheRatios The tranche ratios for this bond
-     * @param _maturityDate The date timestamp in seconds at which this bond matures
-     * @param _depositLimit The maximum amount of collateral that can be deposited. 0 if no limit
      */
     function init(
         address _trancheFactory,
-        address _collateralToken,
         address _admin,
-        uint256[] memory trancheRatios,
-        uint256 _maturityDate,
-        uint256 _depositLimit
+        uint256[] memory trancheRatios
     ) external initializer {
         require(_trancheFactory != address(0), "BondController: invalid trancheFactory address");
-        require(_collateralToken != address(0), "BondController: invalid collateralToken address");
+        require(collateralToken() != address(0), "BondController: invalid collateralToken address");
         require(_admin != address(0), "BondController: invalid admin address");
+        require(maturityDate() > block.timestamp, "BondController: Invalid maturity date");
+
         __Ownable_init();
         transferOwnership(_admin);
 
         trancheCount = trancheRatios.length;
-        collateralToken = _collateralToken;
-        string memory collateralSymbol = IERC20Metadata(collateralToken).symbol();
+        string memory collateralSymbol = IERC20Metadata(collateralToken()).symbol();
 
         uint256 totalRatio;
         for (uint256 i = 0; i < trancheRatios.length; i++) {
@@ -79,17 +86,15 @@ contract BondController is IBondController, OwnableUpgradeable {
             address trancheTokenAddress = ITrancheFactory(_trancheFactory).createTranche(
                 getTrancheName(collateralSymbol, i, trancheRatios.length),
                 getTrancheSymbol(collateralSymbol, i, trancheRatios.length),
-                _collateralToken
+                collateralToken()
             );
             tranches.push(TrancheData(ITranche(trancheTokenAddress), ratio));
             trancheTokenAddresses[trancheTokenAddress] = true;
         }
 
         require(totalRatio == TRANCHE_RATIO_GRANULARITY, "BondController: Invalid tranche ratios");
-        require(_maturityDate > block.timestamp, "BondController: Invalid maturity date");
+
         creationDate = block.timestamp;
-        maturityDate = _maturityDate;
-        depositLimit = _depositLimit;
     }
 
     /**
@@ -103,8 +108,8 @@ contract BondController is IBondController, OwnableUpgradeable {
         require(_totalDebt > 0 || amount >= MINIMUM_FIRST_DEPOSIT, "BondController: invalid initial amount");
         require(!isMature, "BondController: Already mature");
 
-        uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(this));
-        require(depositLimit == 0 || collateralBalance + amount <= depositLimit, "BondController: Deposit limit");
+        uint256 collateralBalance = IERC20(collateralToken()).balanceOf(address(this));
+        require(depositLimit() == 0 || collateralBalance + amount <= depositLimit(), "BondController: Deposit limit");
 
         TrancheData[] memory _tranches = tranches;
 
@@ -123,7 +128,7 @@ contract BondController is IBondController, OwnableUpgradeable {
         }
         totalDebt += newDebt;
 
-        TransferHelper.safeTransferFrom(collateralToken, _msgSender(), address(this), amount);
+        TransferHelper.safeTransferFrom(collateralToken(), _msgSender(), address(this), amount);
         // saving feeBps in memory to minimize sloads
         uint256 _feeBps = feeBps;
         for (uint256 i = 0; i < trancheValues.length; i++) {
@@ -146,11 +151,11 @@ contract BondController is IBondController, OwnableUpgradeable {
      */
     function mature() external override {
         require(!isMature, "BondController: Already mature");
-        require(owner() == _msgSender() || maturityDate < block.timestamp, "BondController: Invalid call to mature");
+        require(owner() == _msgSender() || maturityDate() < block.timestamp, "BondController: Invalid call to mature");
         isMature = true;
 
         TrancheData[] memory _tranches = tranches;
-        uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(this));
+        uint256 collateralBalance = IERC20(collateralToken()).balanceOf(address(this));
         // Go through all tranches A-Y (not Z) delivering collateral if possible
         for (uint256 i = 0; i < _tranches.length - 1 && collateralBalance > 0; i++) {
             ITranche _tranche = _tranches[i].token;
@@ -159,7 +164,7 @@ contract BondController is IBondController, OwnableUpgradeable {
             uint256 amount = Math.min(_tranche.totalSupply(), collateralBalance);
             collateralBalance -= amount;
 
-            TransferHelper.safeTransfer(collateralToken, address(_tranche), amount);
+            TransferHelper.safeTransfer(collateralToken(), address(_tranche), amount);
 
             // redeem fees, sending output tokens to owner
             _tranche.redeem(address(this), owner(), IERC20(_tranche).balanceOf(address(this)));
@@ -168,7 +173,7 @@ contract BondController is IBondController, OwnableUpgradeable {
         // Transfer any remaining collaeral to the Z tranche
         if (collateralBalance > 0) {
             ITranche _tranche = _tranches[_tranches.length - 1].token;
-            TransferHelper.safeTransfer(collateralToken, address(_tranche), collateralBalance);
+            TransferHelper.safeTransfer(collateralToken(), address(_tranche), collateralBalance);
             _tranche.redeem(address(this), owner(), IERC20(_tranche).balanceOf(address(this)));
         }
 
@@ -209,11 +214,11 @@ contract BondController is IBondController, OwnableUpgradeable {
             _tranches[i].token.burn(_msgSender(), amounts[i]);
         }
 
-        uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(this));
+        uint256 collateralBalance = IERC20(collateralToken()).balanceOf(address(this));
         // return as a proportion of the total debt redeemed
         uint256 returnAmount = (total * collateralBalance) / totalDebt;
         totalDebt -= total;
-        TransferHelper.safeTransfer(collateralToken, _msgSender(), returnAmount);
+        TransferHelper.safeTransfer(collateralToken(), _msgSender(), returnAmount);
 
         emit Redeem(_msgSender(), amounts);
     }

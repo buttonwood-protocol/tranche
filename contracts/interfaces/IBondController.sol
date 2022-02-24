@@ -1,4 +1,4 @@
-pragma solidity 0.8.3;
+pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -20,7 +20,11 @@ interface IBondController {
     event Redeem(address user, uint256[] amounts);
     event FeeUpdate(uint256 newFee);
 
-    function collateralToken() external view returns (address);
+    function collateralToken() external pure returns (address);
+
+    function maturityDate() external pure returns (uint256);
+
+    function depositLimit() external pure returns (uint256);
 
     function tranches(uint256 i) external view returns (ITranche token, uint256 ratio);
 

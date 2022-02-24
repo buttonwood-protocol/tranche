@@ -1,6 +1,6 @@
-pragma solidity 0.8.3;
+pragma solidity 0.8.4;
 
-import "@openzeppelin/contracts/proxy/Clones.sol";
+import "clones-with-immutable-args/ClonesWithImmutableArgs.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "./interfaces/IBondFactory.sol";
 import "./BondController.sol";
@@ -65,15 +65,9 @@ contract BondFactory is IBondFactory, Context {
         uint256 maturityDate,
         uint256 depositLimit
     ) internal returns (address) {
-        address clone = Clones.clone(target);
-        BondController(clone).init(
-            trancheFactory,
-            _collateralToken,
-            _msgSender(),
-            trancheRatios,
-            maturityDate,
-            depositLimit
-        );
+        bytes memory data = abi.encodePacked(_collateralToken, maturityDate, depositLimit);
+        address clone = ClonesWithImmutableArgs.clone(target, data);
+        BondController(clone).init(trancheFactory, _msgSender(), trancheRatios);
 
         emit BondCreated(_msgSender(), clone);
         return clone;
