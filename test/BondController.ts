@@ -116,7 +116,7 @@ describe("Bond Controller", () => {
         const tranche = tranches[i];
         const letter = i === tranches.length - 1 ? "Z" : LETTERS[i];
         expect(await tranche.collateralToken()).to.equal(mockCollateralToken.address);
-        expect(await tranche.hasRole(hre.ethers.constants.HashZero, bond.address)).to.be.true;
+        expect(await tranche.bond()).to.equal(bond.address);
         expect(await tranche.symbol()).to.equal(`TRANCHE-${await mockCollateralToken.symbol()}-${letter}`);
         expect(await tranche.name()).to.equal(`ButtonTranche ${await mockCollateralToken.symbol()} ${letter}`);
       }
@@ -211,7 +211,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("914307");
+      expect(gasUsed.toString()).to.equal("841569");
     });
   });
 
@@ -438,7 +438,7 @@ describe("Bond Controller", () => {
       const tx = await bond.connect(user).deposit(amount);
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("270967");
+      expect(gasUsed.toString()).to.equal("270529");
     });
   });
 
@@ -550,7 +550,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("226644");
+      expect(gasUsed.toString()).to.equal("226124");
     });
   });
 
@@ -918,7 +918,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("81436");
+      expect(gasUsed.toString()).to.equal("81294");
     });
   });
 
@@ -1035,7 +1035,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("119720");
+      expect(gasUsed.toString()).to.equal("119161");
     });
   });
 });

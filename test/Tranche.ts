@@ -34,8 +34,8 @@ describe("Tranche Token", () => {
     const receipt = await tx.wait();
 
     let tranche;
-    if (receipt && receipt.events && receipt.events.length === 2 && receipt.events[1].args) {
-      tranche = <Tranche>await hre.ethers.getContractAt("Tranche", receipt.events[1].args.newTrancheAddress);
+    if (receipt && receipt.events && receipt.events.length === 1 && receipt.events[0].args) {
+      tranche = <Tranche>await hre.ethers.getContractAt("Tranche", receipt.events[0].args.newTrancheAddress);
     } else {
       throw new Error("Unable to create new tranche");
     }
@@ -61,8 +61,7 @@ describe("Tranche Token", () => {
       expect(await tranche.name()).to.equal("Tranche");
       expect(await tranche.symbol()).to.equal("TRANCHE");
       expect(await tranche.decimals()).to.equal(18);
-      // ensure user has admin permissions
-      expect(await tranche.hasRole(hre.ethers.constants.HashZero, await user.getAddress())).to.be.true;
+      expect(await tranche.bond()).to.equal(await user.getAddress());
     });
 
     it("should fail to initialize with zero address collateralToken", async () => {
@@ -79,8 +78,7 @@ describe("Tranche Token", () => {
       expect(await tranche.name()).to.equal("Tranche");
       expect(await tranche.symbol()).to.equal("TRANCHE");
       expect(await tranche.decimals()).to.equal(8);
-      // ensure user has admin permissions
-      expect(await tranche.hasRole(hre.ethers.constants.HashZero, await user.getAddress())).to.be.true;
+      expect(await tranche.bond()).to.equal(await user.getAddress());
     });
   });
 
@@ -98,14 +96,12 @@ describe("Tranche Token", () => {
       expect(endingBalance.sub(initialBalance)).to.equal(amount);
     });
 
-    it("should fail to mint tokens from non-owner", async () => {
+    it("should fail to mint tokens from non-bond", async () => {
       const { tranche, other } = await loadFixture(fixture);
       const amount = hre.ethers.utils.parseEther("100");
 
       await expect(tranche.connect(other).mint(await other.getAddress(), amount)).to.be.revertedWith(
-        `AccessControl: account ${(await other.getAddress()).toLowerCase()} is missing role ${
-          hre.ethers.constants.HashZero
-        }`,
+        "Ownable: caller is not the bond",
       );
     });
   });
@@ -150,15 +146,13 @@ describe("Tranche Token", () => {
       );
     });
 
-    it("should fail to burn tokens from non-owner", async () => {
+    it("should fail to burn tokens from non-bond", async () => {
       const { tranche, user, other } = await loadFixture(fixture);
       const amount = hre.ethers.utils.parseEther("100");
       await tranche.connect(user).mint(await other.getAddress(), amount);
 
       await expect(tranche.connect(other).burn(await other.getAddress(), amount)).to.be.revertedWith(
-        `AccessControl: account ${(await other.getAddress()).toLowerCase()} is missing role ${
-          hre.ethers.constants.HashZero
-        }`,
+        "Ownable: caller is not the bond",
       );
     });
   });
@@ -233,18 +227,14 @@ describe("Tranche Token", () => {
       ).to.be.revertedWith("ERC20: burn amount exceeds balance");
     });
 
-    it("should fail to redeem tokens from non-owner", async () => {
+    it("should fail to redeem tokens from non-bond", async () => {
       const { tranche, user, other } = await loadFixture(fixture);
       const amount = hre.ethers.utils.parseEther("100");
       await tranche.connect(user).mint(await other.getAddress(), amount);
 
       await expect(
         tranche.connect(other).redeem(await other.getAddress(), await other.getAddress(), amount),
-      ).to.be.revertedWith(
-        `AccessControl: account ${(await other.getAddress()).toLowerCase()} is missing role ${
-          hre.ethers.constants.HashZero
-        }`,
-      );
+      ).to.be.revertedWith("Ownable: caller is not the bond");
     });
 
     it("should fail to redeem tokens with overflow", async () => {
