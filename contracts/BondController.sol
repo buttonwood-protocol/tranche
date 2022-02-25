@@ -230,7 +230,7 @@ contract BondController is IBondController, OwnableUpgradeable {
     /**
      * @dev get the tranche index
      * @param trancheTokenAddress the address of the tranche token
-     * @return the index of a given tranche address from the tranches array, aka seniority
+     * @return the index of a given tranche address from the tranches array, aka {seniority -1}
      */
     function getTrancheIndex(address trancheTokenAddress) external returns (uint256) {
         require(_trancheSeniority[trancheTokenAddress] > 0, "BondController: Invalid tranche address");
