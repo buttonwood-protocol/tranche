@@ -211,7 +211,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("841569");
+      expect(gasUsed.toString()).to.equal("841754");
     });
   });
 
@@ -918,7 +918,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("81294");
+      expect(gasUsed.toString()).to.equal("81332");
     });
   });
 

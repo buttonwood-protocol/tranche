@@ -30,7 +30,7 @@ contract BondController is IBondController, OwnableUpgradeable {
     address public override collateralToken;
     TrancheData[] public override tranches;
     uint256 public override trancheCount;
-    mapping(address => bool) public trancheTokenAddresses;
+    mapping(address => uint256) private _trancheSeniority; // indexed from 1 to N
     uint256 public maturityDate;
     bool public isMature;
     uint256 public totalDebt;
@@ -81,7 +81,7 @@ contract BondController is IBondController, OwnableUpgradeable {
                 _collateralToken
             );
             tranches.push(TrancheData(ITranche(trancheTokenAddress), ratio));
-            trancheTokenAddresses[trancheTokenAddress] = true;
+            _trancheSeniority[trancheTokenAddress] = i + 1;
         }
 
         require(totalRatio == TRANCHE_RATIO_GRANULARITY, "BondController: Invalid tranche ratios");
@@ -178,7 +178,7 @@ contract BondController is IBondController, OwnableUpgradeable {
      */
     function redeemMature(address tranche, uint256 amount) external override {
         require(isMature, "BondController: Bond is not mature");
-        require(trancheTokenAddresses[tranche], "BondController: Invalid tranche address");
+        require(_trancheSeniority[tranche] > 0, "BondController: Invalid tranche address");
 
         ITranche(tranche).redeem(_msgSender(), _msgSender(), amount);
         totalDebt -= amount;
@@ -225,6 +225,16 @@ contract BondController is IBondController, OwnableUpgradeable {
         feeBps = newFeeBps;
 
         emit FeeUpdate(newFeeBps);
+    }
+
+    /**
+     * @dev get the tranche index
+     * @param trancheTokenAddress the address of the tranche token
+     * @return the index of a given tranche address from the tranches array, aka seniority
+     */
+    function getTrancheIndex(address trancheTokenAddress) external returns (uint256) {
+        require(_trancheSeniority[trancheTokenAddress] > 0, "BondController: Invalid tranche address");
+        return _trancheSeniority[trancheTokenAddress] - 1;
     }
 
     /**
