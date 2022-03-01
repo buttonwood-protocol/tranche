@@ -31,6 +31,7 @@ contract BondController is IBondController, OwnableUpgradeable {
     TrancheData[] public override tranches;
     uint256 public override trancheCount;
     mapping(address => bool) public trancheTokenAddresses;
+    uint256 public creationDate;
     uint256 public maturityDate;
     bool public isMature;
     uint256 public totalDebt;
@@ -86,6 +87,7 @@ contract BondController is IBondController, OwnableUpgradeable {
 
         require(totalRatio == TRANCHE_RATIO_GRANULARITY, "BondController: Invalid tranche ratios");
         require(_maturityDate > block.timestamp, "BondController: Invalid maturity date");
+        creationDate = block.timestamp;
         maturityDate = _maturityDate;
         depositLimit = _depositLimit;
     }

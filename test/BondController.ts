@@ -21,6 +21,7 @@ interface TestContext {
   other: Signer;
   admin: Signer;
   signers: Signer[];
+  maturityDate: number;
 }
 
 const time = new BlockchainTime();
@@ -43,16 +44,12 @@ describe("Bond Controller", () => {
 
     const mockCollateralToken = <MockERC20>await deploy("MockERC20", admin, ["Mock ERC20", "MOCK"]);
 
+    const maturityDate = await time.secondsFromNow(10000);
     let receipt;
     if (depositLimit) {
       const tx = await bondFactory
         .connect(admin)
-        .createBondWithDepositLimit(
-          mockCollateralToken.address,
-          tranches,
-          await time.secondsFromNow(10000),
-          depositLimit,
-        );
+        .createBondWithDepositLimit(mockCollateralToken.address, tranches, maturityDate, depositLimit);
       receipt = await tx.wait();
     } else {
       const tx = await bondFactory
@@ -90,6 +87,7 @@ describe("Bond Controller", () => {
       other,
       admin,
       signers: signers.slice(3),
+      maturityDate,
     };
   };
 
@@ -106,12 +104,16 @@ describe("Bond Controller", () => {
 
   describe("Initialization", function () {
     it("should successfully initialize a tranche bond", async () => {
-      const { bond, tranches, mockCollateralToken, admin } = await loadFixture(getFixture([200, 300, 500]));
+      const { bond, tranches, mockCollateralToken, admin, maturityDate } = await loadFixture(
+        getFixture([200, 300, 500]),
+      );
       expect(await bond.collateralToken()).to.equal(mockCollateralToken.address);
       // ensure user has admin permissions
       expect(await bond.owner()).to.equal(await admin.getAddress());
       expect(await bond.totalDebt()).to.equal(0);
       expect(await bond.isMature()).to.be.false;
+      expect(await bond.creationDate()).to.be.gt("0");
+      expect(await bond.maturityDate()).to.be.eq(maturityDate);
       for (let i = 0; i < tranches.length; i++) {
         const tranche = tranches[i];
         const letter = i === tranches.length - 1 ? "Z" : LETTERS[i];
@@ -211,7 +213,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("841569");
+      expect(gasUsed.toString()).to.equal("863630");
     });
   });
 
@@ -550,7 +552,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("226124");
+      expect(gasUsed.toString()).to.equal("226081");
     });
   });
 
@@ -918,7 +920,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("81294");
+      expect(gasUsed.toString()).to.equal("81316");
     });
   });
 
