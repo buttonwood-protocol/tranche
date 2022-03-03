@@ -11,7 +11,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
  * @dev Loan router for the UniswapV3 AMM
  */
 contract UniV3LoanRouter is LoanRouter {
-    ISwapRouter public uniswapV3Router;
+    ISwapRouter public immutable uniswapV3Router;
 
     constructor(ISwapRouter _uniswapV3Router) {
         uniswapV3Router = _uniswapV3Router;
