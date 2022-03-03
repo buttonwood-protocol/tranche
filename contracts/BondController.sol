@@ -115,7 +115,9 @@ contract BondController is IBondController, OwnableUpgradeable {
             uint256 trancheValue = (amount * _tranches[i].ratio) / TRANCHE_RATIO_GRANULARITY;
 
             // if there is any collateral, we should scale by the debt:collateral ratio
-            if (collateralBalance > 0) {
+            // note: if totalDebt == 0 then we're minting for the first time
+            // so shouldn't scale even if there is some collateral mistakenly sent in
+            if (collateralBalance > 0 && _totalDebt > 0) {
                 trancheValue = (trancheValue * _totalDebt) / collateralBalance;
             }
             newDebt += trancheValue;

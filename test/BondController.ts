@@ -244,6 +244,35 @@ describe("Bond Controller", () => {
       expect(await bond.totalDebt()).to.equal(amount);
     });
 
+    it("should successfully deposit collateral and mint tranche tokens after small collateral transfer", async () => {
+      const trancheValues = [200, 300, 500];
+      const { bond, tranches, mockCollateralToken, user } = await loadFixture(getFixture(trancheValues));
+
+      const amount = parse("1000");
+      await mockCollateralToken.mint(await user.getAddress(), amount);
+      await mockCollateralToken.connect(user).approve(bond.address, amount);
+
+      // deposit tiny amount of collateral to try to break the mint calculation
+      await mockCollateralToken.mint(bond.address, "1");
+
+      await expect(bond.connect(user).deposit(amount))
+        .to.emit(mockCollateralToken, "Transfer")
+        .withArgs(await user.getAddress(), bond.address, amount)
+        .to.emit(bond, "Deposit")
+        .withArgs(await user.getAddress(), amount, "0");
+
+      for (let i = 0; i < tranches.length; i++) {
+        const tranche = tranches[i];
+        const trancheValue = parse(trancheValues[i].toString());
+        expect(await tranche.totalSupply()).to.equal(trancheValue);
+        expect(await tranche.balanceOf(await user.getAddress())).to.equal(trancheValue);
+      }
+
+      expect(await mockCollateralToken.balanceOf(await user.getAddress())).to.equal(0);
+      expect(await mockCollateralToken.balanceOf(bond.address)).to.equal(amount.add("1"));
+      expect(await bond.totalDebt()).to.equal(amount);
+    });
+
     it("should successfully deposit collateral with existing collateral", async () => {
       const trancheValues = [200, 300, 500];
       const { bond, tranches, mockCollateralToken, user, other } = await loadFixture(getFixture(trancheValues));
@@ -440,7 +469,7 @@ describe("Bond Controller", () => {
       const tx = await bond.connect(user).deposit(amount);
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("270529");
+      expect(gasUsed.toString()).to.equal("270607");
     });
   });
 
