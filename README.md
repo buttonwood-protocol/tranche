@@ -109,6 +109,12 @@ compiler version is to add the following fields to your VSCode user settings:
 
 Where of course `v0.8.3+commit.8d00100c` can be replaced with any other version.
 
+## Admin Privileges
+
+Users of the Tranche contracts should note that there are some limited admin permissions. These will be controlled by a decentralized governance mechanism and include:
+- Ability to manually "mature" bonds, disabling deposits and distributing collateral to the tranche token holders
+- Ability to update configurations of BondMinter and BondConfigVault
+
 ## Flow diagram
 
 ![Flow Diagram](assets/FunctionalFlow.png)
