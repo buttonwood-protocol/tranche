@@ -25,7 +25,7 @@ contract UniV2LoanRouter is LoanRouter {
         address output,
         uint256 amount
     ) internal override {
-        IERC20(input).approve(address(uniswapV2Router), amount);
+        SafeERC20.safeIncreaseAllowance(IERC20(input), address(uniswapV2Router), amount);
         address[] memory path = new address[](2);
         path[0] = input;
         path[1] = output;

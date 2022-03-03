@@ -137,13 +137,22 @@ describe("Bond Controller", () => {
     it("should fail with over 26 tranches", async () => {
       const tranches = [500, 250];
       for (let i = 0; i < 25; i++) {
-          tranches.push(10);
+        tranches.push(10);
       }
       const { bondFactory, admin, mockCollateralToken } = await loadFixture(getFixture([200, 300, 500]));
       await expect(
-        bondFactory
-          .connect(admin)
-          .createBond(mockCollateralToken.address, tranches, await time.secondsFromNow(10000)),
+        bondFactory.connect(admin).createBond(mockCollateralToken.address, tranches, await time.secondsFromNow(10000)),
+      ).to.be.revertedWith("BondController: invalid tranche letter");
+    });
+
+    it("should fail with exactly 26 tranches", async () => {
+      const tranches = [750];
+      for (let i = 0; i < 25; i++) {
+        tranches.push(10);
+      }
+      const { bondFactory, admin, mockCollateralToken } = await loadFixture(getFixture([200, 300, 500]));
+      await expect(
+        bondFactory.connect(admin).createBond(mockCollateralToken.address, tranches, await time.secondsFromNow(10000)),
       ).to.be.revertedWith("BondController: invalid tranche letter");
     });
 
@@ -226,7 +235,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("841761");
+      expect(gasUsed.toString()).to.equal("863822");
     });
   });
 
@@ -594,7 +603,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("226226");
+      expect(gasUsed.toString()).to.equal("226183");
     });
   });
 
@@ -962,7 +971,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("81311");
+      expect(gasUsed.toString()).to.equal("81333");
     });
   });
 
@@ -1079,7 +1088,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("119176");
+      expect(gasUsed.toString()).to.equal("119175");
     });
   });
 });

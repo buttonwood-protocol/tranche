@@ -117,7 +117,8 @@ abstract contract LoanRouter is ILoanRouter {
         uint256 minOutput
     ) internal returns (uint256 amountOut) {
         require(address(collateral) != address(currency), "LoanRouter: Invalid currency");
-        collateral.approve(address(bond), amount);
+
+        SafeERC20.safeIncreaseAllowance(collateral, address(bond), amount);
         bond.deposit(amount);
 
         uint256 trancheCount = bond.trancheCount();
