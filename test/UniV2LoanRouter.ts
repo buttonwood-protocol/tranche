@@ -144,7 +144,7 @@ describe("Uniswap V2 Loan Router", () => {
         router.connect(user).borrowMax(amount, bond.address, mockCashToken.address, hre.ethers.utils.parseEther("50"), {
           gasLimit: 9500000,
         }),
-      ).to.be.revertedWith("ERC20: transfer amount exceeds allowance");
+      ).to.be.revertedWith("ERC20: insufficient allowance");
     });
 
     it("should fail if more than balance", async () => {
@@ -252,7 +252,7 @@ describe("Uniswap V2 Loan Router", () => {
             minOutput,
             { gasLimit: 9500000 },
           ),
-      ).to.be.revertedWith("ERC20: transfer amount exceeds allowance");
+      ).to.be.revertedWith("ERC20: insufficient allowance");
     });
 
     it("should fail if more than balance", async () => {
