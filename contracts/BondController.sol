@@ -270,6 +270,7 @@ contract BondController is IBondController, OwnableUpgradeable {
      */
     function getTrancheLetter(uint256 index, uint256 _trancheCount) internal pure returns (string memory) {
         bytes memory trancheLetters = bytes("ABCDEFGHIJKLMNOPQRSTUVWXY");
+        require(index < trancheLetters.length, "BondController: invalid tranche letter");
         bytes memory target = new bytes(1);
         if (index == _trancheCount - 1) {
             target[0] = "Z";

@@ -134,6 +134,19 @@ describe("Bond Controller", () => {
       ).to.be.revertedWith("BondController: invalid collateralToken address");
     });
 
+    it("should fail with over 26 tranches", async () => {
+      const tranches = [500, 250];
+      for (let i = 0; i < 25; i++) {
+          tranches.push(10);
+      }
+      const { bondFactory, admin, mockCollateralToken } = await loadFixture(getFixture([200, 300, 500]));
+      await expect(
+        bondFactory
+          .connect(admin)
+          .createBond(mockCollateralToken.address, tranches, await time.secondsFromNow(10000)),
+      ).to.be.revertedWith("BondController: invalid tranche letter");
+    });
+
     it("should fail if maturity date is already passed", async () => {
       const signers: Signer[] = await hre.ethers.getSigners();
 
@@ -213,7 +226,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("863630");
+      expect(gasUsed.toString()).to.equal("841743");
     });
   });
 
