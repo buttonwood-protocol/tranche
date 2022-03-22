@@ -145,7 +145,7 @@ describe("Uniswap V3 Loan Router", () => {
         router.connect(user).borrowMax(amount, bond.address, mockCashToken.address, hre.ethers.utils.parseEther("50"), {
           gasLimit: 9500000,
         }),
-      ).to.be.revertedWith("ERC20: transfer amount exceeds allowance");
+      ).to.be.revertedWith("ERC20: insufficient allowance");
     });
 
     it("should fail if more than balance", async () => {
@@ -253,7 +253,7 @@ describe("Uniswap V3 Loan Router", () => {
             minOutput,
             { gasLimit: 9500000 },
           ),
-      ).to.be.revertedWith("ERC20: transfer amount exceeds allowance");
+      ).to.be.revertedWith("ERC20: insufficient allowance");
     });
 
     it("should fail if more than balance", async () => {
@@ -392,7 +392,7 @@ describe("Uniswap V3 Loan Router", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("476050");
+      expect(gasUsed.toString()).to.equal("481981");
     });
   });
 });
@@ -579,7 +579,7 @@ describe("Uniswap V3 Loan Router with wrapper", () => {
           .wrapAndBorrowMax(amount, bond.address, mockCashToken.address, hre.ethers.utils.parseEther("50"), {
             gasLimit: 9500000,
           }),
-      ).to.be.revertedWith("ERC20: transfer amount exceeds allowance");
+      ).to.be.revertedWith("ERC20: insufficient allowance");
     });
 
     it("should fail if more than balance", async () => {
@@ -693,7 +693,7 @@ describe("Uniswap V3 Loan Router with wrapper", () => {
             minOutput,
             { gasLimit: 9500000 },
           ),
-      ).to.be.revertedWith("ERC20: transfer amount exceeds allowance");
+      ).to.be.revertedWith("ERC20: insufficient allowance");
     });
 
     it("should fail if more than balance", async () => {
@@ -879,7 +879,7 @@ describe("Uniswap V3 Loan Router with wrapper", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("561648");
+      expect(gasUsed.toString()).to.equal("567657");
     });
   });
 });

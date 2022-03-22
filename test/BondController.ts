@@ -134,6 +134,33 @@ describe("Bond Controller", () => {
       ).to.be.revertedWith("BondController: invalid collateralToken address");
     });
 
+    it("should fail with over 26 tranches", async () => {
+      const tranches = [500, 250];
+      for (let i = 0; i < 25; i++) {
+        tranches.push(10);
+      }
+      const { bondFactory, admin, mockCollateralToken } = await loadFixture(getFixture([200, 300, 500]));
+      await expect(
+        bondFactory.connect(admin).createBond(mockCollateralToken.address, tranches, await time.secondsFromNow(10000)),
+      ).to.be.revertedWith("BondController: invalid tranche count");
+    });
+
+    it("should succeed with exactly 26 tranches", async () => {
+      const trancheRatios = [750];
+      for (let i = 0; i < 25; i++) {
+        trancheRatios.push(10);
+      }
+      const { bond, tranches, mockCollateralToken } = await loadFixture(getFixture(trancheRatios));
+      for (let i = 0; i < tranches.length; i++) {
+        const tranche = tranches[i];
+        const letter = i === tranches.length - 1 ? "Z" : LETTERS[i];
+        expect(await tranche.collateralToken()).to.equal(mockCollateralToken.address);
+        expect(await tranche.bond()).to.equal(bond.address);
+        expect(await tranche.symbol()).to.equal(`TRANCHE-${await mockCollateralToken.symbol()}-${letter}`);
+        expect(await tranche.name()).to.equal(`ButtonTranche ${await mockCollateralToken.symbol()} ${letter}`);
+      }
+    });
+
     it("should fail if maturity date is already passed", async () => {
       const signers: Signer[] = await hre.ethers.getSigners();
 
@@ -213,7 +240,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("863630");
+      expect(gasUsed.toString()).to.equal("863677");
     });
   });
 
@@ -241,6 +268,35 @@ describe("Bond Controller", () => {
 
       expect(await mockCollateralToken.balanceOf(await user.getAddress())).to.equal(0);
       expect(await mockCollateralToken.balanceOf(bond.address)).to.equal(amount);
+      expect(await bond.totalDebt()).to.equal(amount);
+    });
+
+    it("should successfully deposit collateral and mint tranche tokens after small collateral transfer", async () => {
+      const trancheValues = [200, 300, 500];
+      const { bond, tranches, mockCollateralToken, user } = await loadFixture(getFixture(trancheValues));
+
+      const amount = parse("1000");
+      await mockCollateralToken.mint(await user.getAddress(), amount);
+      await mockCollateralToken.connect(user).approve(bond.address, amount);
+
+      // deposit tiny amount of collateral to try to break the mint calculation
+      await mockCollateralToken.mint(bond.address, "1");
+
+      await expect(bond.connect(user).deposit(amount))
+        .to.emit(mockCollateralToken, "Transfer")
+        .withArgs(await user.getAddress(), bond.address, amount)
+        .to.emit(bond, "Deposit")
+        .withArgs(await user.getAddress(), amount, "0");
+
+      for (let i = 0; i < tranches.length; i++) {
+        const tranche = tranches[i];
+        const trancheValue = parse(trancheValues[i].toString());
+        expect(await tranche.totalSupply()).to.equal(trancheValue);
+        expect(await tranche.balanceOf(await user.getAddress())).to.equal(trancheValue);
+      }
+
+      expect(await mockCollateralToken.balanceOf(await user.getAddress())).to.equal(0);
+      expect(await mockCollateralToken.balanceOf(bond.address)).to.equal(amount.add("1"));
       expect(await bond.totalDebt()).to.equal(amount);
     });
 
@@ -440,7 +496,7 @@ describe("Bond Controller", () => {
       const tx = await bond.connect(user).deposit(amount);
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("270529");
+      expect(gasUsed.toString()).to.equal("270693");
     });
   });
 
@@ -552,7 +608,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("226081");
+      expect(gasUsed.toString()).to.equal("226183");
     });
   });
 
@@ -920,7 +976,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("81316");
+      expect(gasUsed.toString()).to.equal("81333");
     });
   });
 
@@ -1037,7 +1093,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("119161");
+      expect(gasUsed.toString()).to.equal("119175");
     });
   });
 });

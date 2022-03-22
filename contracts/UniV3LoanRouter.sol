@@ -25,7 +25,7 @@ contract UniV3LoanRouter is LoanRouter {
         address output,
         uint256 amount
     ) internal override {
-        IERC20(input).approve(address(uniswapV3Router), amount);
+        SafeERC20.safeIncreaseAllowance(IERC20(input), address(uniswapV3Router), amount);
         uniswapV3Router.exactInputSingle(
             ISwapRouter.ExactInputSingleParams(
                 address(input),
