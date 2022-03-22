@@ -142,18 +142,23 @@ describe("Bond Controller", () => {
       const { bondFactory, admin, mockCollateralToken } = await loadFixture(getFixture([200, 300, 500]));
       await expect(
         bondFactory.connect(admin).createBond(mockCollateralToken.address, tranches, await time.secondsFromNow(10000)),
-      ).to.be.revertedWith("BondController: invalid tranche letter");
+      ).to.be.revertedWith("BondController: invalid tranche count");
     });
 
-    it("should fail with exactly 26 tranches", async () => {
-      const tranches = [750];
+    it("should succeed with exactly 26 tranches", async () => {
+      const trancheRatios = [750];
       for (let i = 0; i < 25; i++) {
-        tranches.push(10);
+        trancheRatios.push(10);
       }
-      const { bondFactory, admin, mockCollateralToken } = await loadFixture(getFixture([200, 300, 500]));
-      await expect(
-        bondFactory.connect(admin).createBond(mockCollateralToken.address, tranches, await time.secondsFromNow(10000)),
-      ).to.be.revertedWith("BondController: invalid tranche letter");
+      const { bond, tranches, mockCollateralToken } = await loadFixture(getFixture(trancheRatios));
+      for (let i = 0; i < tranches.length; i++) {
+        const tranche = tranches[i];
+        const letter = i === tranches.length - 1 ? "Z" : LETTERS[i];
+        expect(await tranche.collateralToken()).to.equal(mockCollateralToken.address);
+        expect(await tranche.bond()).to.equal(bond.address);
+        expect(await tranche.symbol()).to.equal(`TRANCHE-${await mockCollateralToken.symbol()}-${letter}`);
+        expect(await tranche.name()).to.equal(`ButtonTranche ${await mockCollateralToken.symbol()} ${letter}`);
+      }
     });
 
     it("should fail if maturity date is already passed", async () => {
@@ -235,7 +240,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("863822");
+      expect(gasUsed.toString()).to.equal("863677");
     });
   });
 

@@ -18,6 +18,8 @@ import "./interfaces/ITranche.sol";
  */
 contract BondController is IBondController, OwnableUpgradeable {
     uint256 private constant TRANCHE_RATIO_GRANULARITY = 1000;
+    // One tranche for A-Z
+    uint256 private constant MAX_TRANCHE_COUNT = 26;
     // Denominator for basis points. Used to calculate fees
     uint256 private constant BPS = 10_000;
     // Maximum fee in terms of basis points
@@ -63,6 +65,7 @@ contract BondController is IBondController, OwnableUpgradeable {
         require(_trancheFactory != address(0), "BondController: invalid trancheFactory address");
         require(_collateralToken != address(0), "BondController: invalid collateralToken address");
         require(_admin != address(0), "BondController: invalid admin address");
+        require(trancheRatios.length <= MAX_TRANCHE_COUNT, "BondController: invalid tranche count");
         __Ownable_init();
         transferOwnership(_admin);
 
@@ -270,7 +273,6 @@ contract BondController is IBondController, OwnableUpgradeable {
      */
     function getTrancheLetter(uint256 index, uint256 _trancheCount) internal pure returns (string memory) {
         bytes memory trancheLetters = bytes("ABCDEFGHIJKLMNOPQRSTUVWXY");
-        require(index < trancheLetters.length, "BondController: invalid tranche letter");
         bytes memory target = new bytes(1);
         if (index == _trancheCount - 1) {
             target[0] = "Z";
