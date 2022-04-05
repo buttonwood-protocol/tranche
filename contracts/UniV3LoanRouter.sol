@@ -54,7 +54,7 @@ contract UniV3LoanRouter is ILoanRouter {
      * @param currency The currency to borrow
      * @param sales The amount of each tranche to sell for the currency.
      *  If MAX_UNT256, then sell full balance of the token
-     * @param minOutput The minimum amount of currency that should be recived, else reverts
+     * @param minOutput The minimum amount of currency that should be received, else reverts
      */
     function _borrow(
         uint256 amount,

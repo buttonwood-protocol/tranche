@@ -21,6 +21,7 @@
     "@typescript-eslint/eslint-plugin": "^3.10.1",
     "@typescript-eslint/parser": "^3.10.1",
     "@uniswap/lib": "^4.0.1-alpha",
+    "button-wrappers": "https://github.com/buttonwood-protocol/button-wrappers.git#main",
     "chai": "^4.2.0",
     "commitizen": "^4.2.1",
     "cz-conventional-changelog": "^3.3.0",
@@ -84,6 +85,7 @@
   "dependencies": {
     "@openzeppelin/contracts-upgradeable": "^4.1.0",
     "@uniswap/v3-periphery": "^1.1.0",
-    "lodash": "^4.17.21"
+    "lodash": "^4.17.21",
+    "button-wrappers": "buttonwood-protocol/button-wrappers"
   }
 }
