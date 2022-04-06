@@ -414,7 +414,7 @@ describe("Bond Controller", () => {
       const tx = await bond.connect(user).deposit(amount);
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("262669");
+      expect(gasUsed.toString()).to.equal("262665");
     });
   });
 
@@ -526,7 +526,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("167362");
+      expect(gasUsed.toString()).to.equal("167358");
     });
   });
 
@@ -590,7 +590,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("81458");
+      expect(gasUsed.toString()).to.equal("81454");
     });
   });
 
@@ -707,7 +707,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("119720");
+      expect(gasUsed.toString()).to.equal("119717");
     });
   });
 });
