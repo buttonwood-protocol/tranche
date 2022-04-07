@@ -10,6 +10,7 @@ interface ILoanRouter {
     /**
      * @dev Borrow against a given bond, wrapping the raw collateral into a ButtonToken first
      * @param underlyingAmount The amount of collateral to deposit into the bond
+     * @param bond The bond to borrow from
      * @param currency The asset to borrow
      * @param sales The number of tranche tokens to sell, in tranche index order
      * @param minOutput The minimum amount of currency to get out, reverts if not met
@@ -25,6 +26,7 @@ interface ILoanRouter {
     /**
      * @dev Borrow as much as possible against a given bond, wrapping the raw collateral into a ButtonToken first
      * @param underlyingAmount The amount of collateral to deposit into the bond
+     * @param bond The bond to borrow from
      * @param currency The asset to borrow
      * @param minOutput The minimum amount of currency to get out, reverts if not met
      */
@@ -38,6 +40,7 @@ interface ILoanRouter {
     /**
      * @dev Borrow against a given bond
      * @param amount The amount of collateral to deposit into the bond
+     * @param bond The bond to borrow from
      * @param currency The asset to borrow
      * @param sales The number of tranche tokens to sell, in tranche index order
      * @param minOutput The minimum amount of currency to get out, reverts if not met
@@ -53,6 +56,7 @@ interface ILoanRouter {
     /**
      * @dev Borrow as much as possible against a given bond
      * @param amount The amount of collateral to deposit into the bond
+     * @param bond The bond to borrow from
      * @param currency The asset to borrow
      * @param minOutput The minimum amount of currency to get out, reverts if not met
      */
