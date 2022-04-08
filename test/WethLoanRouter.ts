@@ -35,7 +35,7 @@ interface TestContext {
 
 const time = new BlockchainTime();
 
-describe("Uniswap V3 Loan Router with wrapper", () => {
+describe("WETH Loan Router", () => {
   /**
    * Sets up a test context, deploying new contracts and returning them for use in a test
    */
