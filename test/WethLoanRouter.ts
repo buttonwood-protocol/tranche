@@ -533,7 +533,7 @@ describe("Uniswap V3 Loan Router with wrapper", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("692150");
+      expect(gasUsed.toString()).to.equal("692089");
       const costOfGas = gasUsed.mul(receipt.effectiveGasPrice);
       expect(await user.getBalance()).to.eq(
         startingBalance.sub(amount).sub(costOfGas),
