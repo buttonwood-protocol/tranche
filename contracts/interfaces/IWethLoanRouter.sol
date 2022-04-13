@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  */
 interface IWethLoanRouter {
     /**
-     * @dev Borrow against a given bond, wrapping the raw ETH collateral into a WETH ButtonToken first
+     * @notice Borrow against a given bond, wrapping the raw ETH collateral into a WETH ButtonToken first
      * @param bond The bond to borrow from
      * @param currency The asset to borrow
      * @param sales The number of tranche tokens to sell, in tranche index order
@@ -22,7 +22,7 @@ interface IWethLoanRouter {
     ) external payable returns (uint256 amountOut);
 
     /**
-     * @dev Borrow as much as possible against a given bond,
+     * @notice Borrow as much as possible against a given bond,
      *  wrapping the raw ETH collateral into a WETH ButtonToken first
      * @param bond The bond to borrow from
      * @param currency The asset to borrow
