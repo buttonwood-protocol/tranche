@@ -52,6 +52,21 @@ task("deploy:BondFactory").setAction(async function (_args: TaskArguments, hre) 
   }
 });
 
+task("deploy:Bond", "Verifies on etherscan")
+  .addParam("factory", "the factory address", undefined, types.string, false)
+  .addParam("collateral", "the collateral address", undefined, types.string, false)
+  .addParam("maturity", "the collateral address", undefined, types.string, false)
+  .setAction(async function (args: TaskArguments, hre) {
+    const { factory, collateral, maturity } = args;
+    const BondFactory = await hre.ethers.getContractAt("BondFactory", factory);
+    const tx = await BondFactory.createBond(collateral, [200, 300, 500], maturity);
+    const receipt = await tx.wait();
+    const event = receipt.events[receipt.events.length - 1];
+    const bondAddress = event.args.newBondAddress;
+    console.log(`Deployed new bond: ${bondAddress} with collateral ${collateral} and maturity ${maturity}`);
+    return bondAddress;
+  });
+
 task("verify:Template", "Verifies on etherscan")
   .addParam("address", "the contract address", undefined, types.string, false)
   .setAction(async function (args: TaskArguments, hre) {
