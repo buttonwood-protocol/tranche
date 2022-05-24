@@ -33,9 +33,9 @@ contract BondController is IBondController, OwnableUpgradeable {
     TrancheData[] public override tranches;
     uint256 public override trancheCount;
     mapping(address => bool) public trancheTokenAddresses;
-    uint256 public creationDate;
-    uint256 public maturityDate;
-    bool public isMature;
+    uint256 public override creationDate;
+    uint256 public override maturityDate;
+    bool public override isMature;
     uint256 public totalDebt;
 
     // Maximum amount of collateral that can be deposited into this bond
