@@ -29,7 +29,7 @@ interface IBondController {
     function feeBps() external view returns (uint256 fee);
 
     function maturityDate() external view returns (uint256 maturityDate);
-    
+
     function isMature() external view returns (bool isMature);
 
     function creationDate() external view returns (uint256 creationDate);
