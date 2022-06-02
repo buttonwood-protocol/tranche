@@ -1,4 +1,4 @@
-pragma solidity 0.8.3;
+pragma solidity ^0.8.3;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/Context.sol";

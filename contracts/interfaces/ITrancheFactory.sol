@@ -1,4 +1,4 @@
-pragma solidity 0.8.3;
+pragma solidity ^0.8.3;
 
 /**
  * @dev Factory for Tranche minimal proxy contracts
