@@ -125,11 +125,9 @@ describe("WAMPL Loan Router", () => {
       const minOutput = hre.ethers.utils.parseEther("50");
 
       await expect(
-        router
-          .connect(user)
-          .wrapAndBorrowMax(amount, bond.address, mockCashToken.address, minOutput, {
-            gasLimit: 9500000,
-          }),
+        router.connect(user).wrapAndBorrowMax(amount, bond.address, mockCashToken.address, minOutput, {
+          gasLimit: 9500000,
+        }),
       )
         // // Note: the mock wrapper wraps at a 1:1 ratio, thus the wrapped output is equal to the input
         .to.emit(ampl, "Transfer")
@@ -306,9 +304,8 @@ describe("WAMPL Loan Router", () => {
 
   describe("wrapAndBorrow", function () {
     it("should successfully wrap and borrow", async () => {
-      const { router, loanRouter, tranches, ampl, wampl, mockWrapperToken, mockCashToken, bond, user } = await loadFixture(
-        fixture,
-      );
+      const { router, loanRouter, tranches, ampl, wampl, mockWrapperToken, mockCashToken, bond, user } =
+        await loadFixture(fixture);
 
       const userAddress = await user.getAddress();
       const amount = hre.ethers.utils.parseEther("100");
