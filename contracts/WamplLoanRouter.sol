@@ -8,6 +8,7 @@ import "./interfaces/IWAMPL.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IWamplLoanRouter.sol";
+import "./test/WAMPL.sol";
 
 /**
  * @dev Wampl Loan Router built on top of a LoanRouter of your choosing
@@ -36,7 +37,7 @@ contract WamplLoanRouter is IWamplLoanRouter {
         IERC20 currency,
         uint256[] memory sales,
         uint256 minOutput
-    ) external payable override returns (uint256 amountOut) {
+    ) external override returns (uint256 amountOut) {
         uint256 wamplBalance = _wamplWrap(underlyingAmount, bond);
         uint256 loanAmountOut = loanRouter.wrapAndBorrow(wamplBalance, bond, currency, sales, minOutput);
         _distributeLoanOutput(loanAmountOut, bond, currency);
@@ -51,7 +52,7 @@ contract WamplLoanRouter is IWamplLoanRouter {
         IBondController bond,
         IERC20 currency,
         uint256 minOutput
-    ) external payable override returns (uint256 amountOut) {
+    ) external override returns (uint256 amountOut) {
         uint256 wamplBalance = _wamplWrap(underlyingAmount, bond);
         uint256 loanAmountOut = loanRouter.wrapAndBorrowMax(wamplBalance, bond, currency, minOutput);
         _distributeLoanOutput(loanAmountOut, bond, currency);
@@ -71,16 +72,19 @@ contract WamplLoanRouter is IWamplLoanRouter {
         IButtonWrapper wrapper = IButtonWrapper(bond.collateralToken());
         require(wrapper.underlying() == address(wampl), "Collateral Token underlying does not match WAMPL address.");
 
+        // Accessing AMPL contract from WAMPL
+        IERC20 ampl = IERC20(wampl.underlying());
+
         // Transferring AMPL to contract
-        SafeERC20.safeTransferFrom(wampl, msg.sender, address(this), underlyingAmount);
+        SafeERC20.safeTransferFrom(ampl, msg.sender, address(this), underlyingAmount);
 
         // Wrapping contract's balance of AMPL into WAMPL
-        wampl.deposit(underlyingAmount);
+        SafeERC20.safeApprove(ampl, address(wampl), underlyingAmount);
+        uint256 wamplAmount = wampl.deposit(underlyingAmount);
 
         // Approve loanRouter to take wampl
-        uint256 wamplBalance = wampl.balanceOf(address(this));
-        wampl.approve(address(loanRouter), wamplBalance);
-        return wamplBalance;
+        wampl.approve(address(loanRouter), wamplAmount);
+        return wamplAmount;
     }
 
     /**

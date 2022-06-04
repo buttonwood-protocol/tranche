@@ -11,4 +11,7 @@ interface IWAMPL is IERC20 {
     /// @param amples The amount of AMPLs to deposit.
     /// @return The amount of wAMPLs minted.
     function deposit(uint256 amples) external returns (uint256);
+
+    /// @return The address of the underlying "wrapped" token ie) AMPL.
+    function underlying() external view returns (address);
 }

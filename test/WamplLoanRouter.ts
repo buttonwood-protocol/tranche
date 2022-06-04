@@ -13,15 +13,16 @@ import {
   TrancheFactory,
   BondController,
   BondFactory,
-  WethLoanRouter,
   UniV3LoanRouter,
-  WETH9,
+  WAMPL,
+  WamplLoanRouter,
 } from "../typechain";
 
 interface TestContext {
-  router: WethLoanRouter;
+  router: WamplLoanRouter;
   loanRouter: UniV3LoanRouter;
-  weth: WETH9;
+  ampl: MockERC20;
+  wampl: WAMPL;
   mockWrapperToken: MockButtonWrapper;
   bondFactory: BondFactory;
   mockCashToken: MockERC20;
@@ -35,7 +36,7 @@ interface TestContext {
 
 const time = new BlockchainTime();
 
-describe("WETH Loan Router", () => {
+describe("WAMPL Loan Router", () => {
   /**
    * Sets up a test context, deploying new contracts and returning them for use in a test
    */
@@ -45,11 +46,14 @@ describe("WETH Loan Router", () => {
 
     const mockSwapRouter = <MockSwapRouter>await deploy("MockSwapRouter", user, []);
     const loanRouter = <UniV3LoanRouter>await deploy("UniV3LoanRouter", admin, [mockSwapRouter.address]);
-    const weth = <WETH9>await deploy("WETH9", admin, []);
-    const router = <WethLoanRouter>await deploy("WethLoanRouter", admin, [loanRouter.address, weth.address]);
+
+    const ampl = <MockERC20>await deploy("MockERC20", admin, ["Mock AMPL", "MOCK-AMPL"]);
+    const wampl = <WAMPL>await deploy("WAMPL", admin, [ampl.address]);
+
+    const router = <WamplLoanRouter>await deploy("WamplLoanRouter", admin, [loanRouter.address, wampl.address]);
 
     const mockWrapperToken = <MockButtonWrapper>(
-      await deploy("MockButtonWrapper", admin, [weth.address, "Mock Button WETH", "MOCK-BTN-WETH"])
+      await deploy("MockButtonWrapper", admin, [wampl.address, "Mock Button WAMPL", "MOCK-BTN-WAMPL"])
     );
     const mockCashToken = <MockERC20>await deploy("MockERC20", admin, ["Mock ERC20", "MOCK-USDT"]);
 
@@ -89,11 +93,11 @@ describe("WETH Loan Router", () => {
     // ToDo: @mark-toda Why do the wrapper-tests in the other loan routers do this with the collateral and not wrapper token?
     // await mockCollateralToken.mint(mockSwapRouter.address, hre.ethers.utils.parseEther("1000000000000"));
     await mockCashToken.mint(mockSwapRouter.address, hre.ethers.utils.parseEther("1000000000000"));
-
     return {
       router,
       loanRouter,
-      weth,
+      ampl,
+      wampl,
       mockWrapperToken,
       bond,
       bondFactory,
@@ -108,11 +112,13 @@ describe("WETH Loan Router", () => {
 
   describe("wrapAndBorrowMax", function () {
     it("should successfully wrap and borrow max", async () => {
-      const { router, loanRouter, tranches, weth, mockWrapperToken, mockCashToken, bond, user } = await loadFixture(
-        fixture,
-      );
-      const startingBalance = await user.getBalance();
+      const { router, loanRouter, tranches, ampl, wampl, mockWrapperToken, mockCashToken, bond, user } =
+        await loadFixture(fixture);
+
+      const userAddress = await user.getAddress();
       const amount = hre.ethers.utils.parseEther("100");
+      await ampl.mint(userAddress, amount);
+      await ampl.connect(user).approve(router.address, amount);
 
       // Note: the mock AMM swaps at a 1:1 ratio
       // min output of 50 because the router will sell all A (20) and B (30) tranche tokens, but keep the Z tranches
@@ -121,10 +127,14 @@ describe("WETH Loan Router", () => {
       await expect(
         router
           .connect(user)
-          .wrapAndBorrowMax(bond.address, mockCashToken.address, minOutput, { value: amount, gasLimit: 9500000 }),
+          .wrapAndBorrowMax(amount, bond.address, mockCashToken.address, minOutput, {
+            gasLimit: 9500000,
+          }),
       )
         // // Note: the mock wrapper wraps at a 1:1 ratio, thus the wrapped output is equal to the input
-        .to.emit(weth, "Transfer")
+        .to.emit(ampl, "Transfer")
+        .withArgs(userAddress, router.address, amount)
+        .to.emit(wampl, "Transfer")
         .withArgs(router.address, loanRouter.address, amount)
         .to.emit(mockWrapperToken, "Transfer")
         .withArgs(loanRouter.address, bond.address, amount)
@@ -142,27 +152,25 @@ describe("WETH Loan Router", () => {
       expect(
         (await tranches[tranches.length - 1].balanceOf(await user.getAddress())).eq(hre.ethers.utils.parseEther("50")),
       ).to.be.true;
-
-      expect(await user.getBalance()).to.lte(
-        startingBalance.sub(amount),
-        `User ETH balance should have decreased by at least ${amount.toString()}`,
-      );
     });
 
     it("should fetch amountOut from a static call", async () => {
-      const { router, mockCashToken, bond, user } = await loadFixture(fixture);
+      const { ampl, router, mockCashToken, bond, user } = await loadFixture(fixture);
+      const userAddress = await user.getAddress();
       const amount = hre.ethers.utils.parseEther("100");
+      await ampl.mint(userAddress, amount);
+      await ampl.connect(user).approve(router.address, amount);
 
       // min output of 50 because the router will sell all A (20) and B (30) tranche tokens, but keep the Z tranches
       const minOutput = hre.ethers.utils.parseEther("50");
       const amountOut = await router
         .connect(user)
-        .callStatic.wrapAndBorrowMax(bond.address, mockCashToken.address, minOutput, { value: amount });
+        .callStatic.wrapAndBorrowMax(amount, bond.address, mockCashToken.address, minOutput);
       expect(minOutput).to.equal(amountOut);
     });
 
     it("should fail if not a wrapper token", async () => {
-      const { router, mockCashToken, bondFactory, user } = await loadFixture(fixture);
+      const { ampl, router, mockCashToken, bondFactory, user } = await loadFixture(fixture);
 
       // deploy a new bond factory with a non-wrapper collateral
       let bond: BondController | undefined;
@@ -181,21 +189,25 @@ describe("WETH Loan Router", () => {
         throw new Error("Unable to create new bond");
       }
 
+      const userAddress = await user.getAddress();
       const amount = hre.ethers.utils.parseEther("100");
+      await ampl.mint(userAddress, amount);
+      await ampl.connect(user).approve(router.address, amount);
 
       // min output of 50 because the router will sell all A (20) and B (30) tranche tokens, but keep the Z tranches
       await expect(
-        router.connect(user).wrapAndBorrowMax(bond.address, mockCashToken.address, hre.ethers.utils.parseEther("50"), {
-          value: amount,
-          gasLimit: 9500000,
-        }),
+        router
+          .connect(user)
+          .wrapAndBorrowMax(amount, bond.address, mockCashToken.address, hre.ethers.utils.parseEther("50"), {
+            gasLimit: 9500000,
+          }),
       ).to.be.revertedWith(
         "Transaction reverted: function selector was not recognized and there's no fallback function",
       );
     });
 
-    it("should fail if bond's collateral token's underlying does not match weth address", async () => {
-      const { router, mockCashToken, bondFactory, user, admin } = await loadFixture(fixture);
+    it("should fail if bond's collateral token's underlying does not match wampl address", async () => {
+      const { ampl, router, mockCashToken, bondFactory, user, admin } = await loadFixture(fixture);
 
       const mockButtonCash = <MockButtonWrapper>(
         await deploy("MockButtonWrapper", admin, [mockCashToken.address, "Mock Button USDT", "MOCK-BTN-USDT"])
@@ -222,53 +234,86 @@ describe("WETH Loan Router", () => {
         throw new Error("Unable to create new bond");
       }
 
+      const userAddress = await user.getAddress();
       const amount = hre.ethers.utils.parseEther("100");
+      await ampl.mint(userAddress, amount);
+      await ampl.connect(user).approve(router.address, amount);
 
       // min output of 50 because the router will sell all A (20) and B (30) tranche tokens, but keep the Z tranches
       await expect(
         router
           .connect(user)
-          .wrapAndBorrowMax(wrappedCashTokenBond.address, mockCashToken.address, hre.ethers.utils.parseEther("50"), {
-            value: amount,
-            gasLimit: 9500000,
-          }),
-      ).to.be.revertedWith("Collateral Token underlying does not match WETH address.");
+          .wrapAndBorrowMax(
+            amount,
+            wrappedCashTokenBond.address,
+            mockCashToken.address,
+            hre.ethers.utils.parseEther("50"),
+            {
+              gasLimit: 9500000,
+            },
+          ),
+      ).to.be.revertedWith("Collateral Token underlying does not match WAMPL address.");
     });
 
-    it("should fail if no eth sent", async () => {
+    it("should fail if no wampl sent", async () => {
       const { router, mockCashToken, bond, user } = await loadFixture(fixture);
       const amount = hre.ethers.utils.parseEther("0");
 
       // min output of 50 because the router will sell all A (20) and B (30) tranche tokens, but keep the Z tranches
       await expect(
-        router.connect(user).wrapAndBorrowMax(bond.address, mockCashToken.address, hre.ethers.utils.parseEther("50"), {
-          value: amount,
-          gasLimit: 9500000,
-        }),
-      ).to.be.revertedWith("ButtonTokenWethRouter: No ETH supplied");
+        router
+          .connect(user)
+          .wrapAndBorrowMax(amount, bond.address, mockCashToken.address, hre.ethers.utils.parseEther("50"), {
+            gasLimit: 9500000,
+          }),
+      ).to.be.revertedWith("WamplLoanRouter: No AMPL supplied");
     });
 
     it("should fail if not enough input", async () => {
-      const { router, mockCashToken, bond, user } = await loadFixture(fixture);
+      const { ampl, router, mockCashToken, bond, user } = await loadFixture(fixture);
+      const userAddress = await user.getAddress();
       const amount = hre.ethers.utils.parseEther("80");
+      await ampl.mint(userAddress, amount);
+      await ampl.connect(user).approve(router.address, amount);
 
       // min output of 50 because the router will sell all A (20) and B (30) tranche tokens, but keep the Z tranches
       await expect(
-        router.connect(user).wrapAndBorrowMax(bond.address, mockCashToken.address, hre.ethers.utils.parseEther("50"), {
-          value: amount,
-          gasLimit: 9500000,
-        }),
+        router
+          .connect(user)
+          .wrapAndBorrowMax(amount, bond.address, mockCashToken.address, hre.ethers.utils.parseEther("50"), {
+            gasLimit: 9500000,
+          }),
       ).to.be.revertedWith("LoanRouter: Insufficient output");
+    });
+
+    it("should fail if router doesn't have sufficient ampl allowance from user", async () => {
+      const { ampl, router, mockCashToken, bond, user } = await loadFixture(fixture);
+      const userAddress = await user.getAddress();
+      const amount = hre.ethers.utils.parseEther("100");
+      await ampl.mint(userAddress, amount);
+      await ampl.connect(user).approve(router.address, hre.ethers.utils.parseEther("80"));
+
+      // min output of 50 because the router will sell all A (20) and B (30) tranche tokens, but keep the Z tranches
+      await expect(
+        router
+          .connect(user)
+          .wrapAndBorrowMax(amount, bond.address, mockCashToken.address, hre.ethers.utils.parseEther("50"), {
+            gasLimit: 9500000,
+          }),
+      ).to.be.revertedWith("ERC20: insufficient allowance");
     });
   });
 
   describe("wrapAndBorrow", function () {
     it("should successfully wrap and borrow", async () => {
-      const { router, loanRouter, tranches, weth, mockWrapperToken, mockCashToken, bond, user } = await loadFixture(
+      const { router, loanRouter, tranches, ampl, wampl, mockWrapperToken, mockCashToken, bond, user } = await loadFixture(
         fixture,
       );
-      const startingBalance = await user.getBalance();
+
+      const userAddress = await user.getAddress();
       const amount = hre.ethers.utils.parseEther("100");
+      await ampl.mint(userAddress, amount);
+      await ampl.connect(user).approve(router.address, amount);
 
       // min output of 30 because the router will sell all A (20) and only B (10) tranche tokens, but keep the remaining B (20) tranche tokens and all the Z tranches
       const minOutput = hre.ethers.utils.parseEther("30");
@@ -276,14 +321,17 @@ describe("WETH Loan Router", () => {
         router
           .connect(user)
           .wrapAndBorrow(
+            amount,
             bond.address,
             mockCashToken.address,
             [hre.ethers.utils.parseEther("20"), hre.ethers.utils.parseEther("10"), 0],
             minOutput,
-            { value: amount, gasLimit: 9500000 },
+            { gasLimit: 9500000 },
           ),
       )
-        .to.emit(weth, "Transfer")
+        .to.emit(ampl, "Transfer")
+        .withArgs(userAddress, router.address, amount)
+        .to.emit(wampl, "Transfer")
         .withArgs(router.address, loanRouter.address, amount)
         .to.emit(mockWrapperToken, "Transfer")
         .withArgs(loanRouter.address, bond.address, amount)
@@ -299,33 +347,32 @@ describe("WETH Loan Router", () => {
         const tranche = tranches[i];
         expect((await tranche.balanceOf(await user.getAddress())).eq(expected[i])).to.be.true;
       }
-
-      expect(await user.getBalance()).to.lte(
-        startingBalance.sub(amount),
-        `User ETH balance should have decreased by at least ${amount.toString()}`,
-      );
     });
 
     it("should fetch amountOut from a static call", async () => {
-      const { router, mockCashToken, bond, user } = await loadFixture(fixture);
+      const { ampl, router, mockCashToken, bond, user } = await loadFixture(fixture);
+      const userAddress = await user.getAddress();
       const amount = hre.ethers.utils.parseEther("100");
+      await ampl.mint(userAddress, amount);
+      await ampl.connect(user).approve(router.address, amount);
 
       // min output of 30 because the router will sell all A (20) and only B (10) tranche tokens, but keep the remaining B (20) tranche tokens and all the Z tranches
       const minOutput = hre.ethers.utils.parseEther("30");
       const amountOut = await router
         .connect(user)
         .callStatic.wrapAndBorrow(
+          amount,
           bond.address,
           mockCashToken.address,
           [hre.ethers.utils.parseEther("20"), hre.ethers.utils.parseEther("10"), 0],
           minOutput,
-          { value: amount, gasLimit: 9500000 },
+          { gasLimit: 9500000 },
         );
       expect(minOutput).to.equal(amountOut);
     });
 
     it("should fail if not a wrapper token", async () => {
-      const { router, mockCashToken, bondFactory, user } = await loadFixture(fixture);
+      const { ampl, router, mockCashToken, bondFactory, user } = await loadFixture(fixture);
 
       // deploy a new bond factory with a non-wrapper collateral
       let bond: BondController | undefined;
@@ -344,7 +391,10 @@ describe("WETH Loan Router", () => {
         throw new Error("Unable to create new bond");
       }
 
+      const userAddress = await user.getAddress();
       const amount = hre.ethers.utils.parseEther("100");
+      await ampl.mint(userAddress, amount);
+      await ampl.connect(user).approve(router.address, amount);
 
       // min output of 30 because the router will sell all A (20) and only B (10) tranche tokens, but keep the remaining B (20) tranche tokens and all the Z tranches
       const minOutput = hre.ethers.utils.parseEther("30");
@@ -352,12 +402,12 @@ describe("WETH Loan Router", () => {
         router
           .connect(user)
           .wrapAndBorrow(
+            amount,
             bond.address,
             mockCashToken.address,
             [hre.ethers.utils.parseEther("20"), hre.ethers.utils.parseEther("10"), 0],
             minOutput,
             {
-              value: amount,
               gasLimit: 9500000,
             },
           ),
@@ -366,8 +416,8 @@ describe("WETH Loan Router", () => {
       );
     });
 
-    it("should fail if bond's collateral token's underlying does not match weth address", async () => {
-      const { router, mockCashToken, bondFactory, user, admin } = await loadFixture(fixture);
+    it("should fail if bond's collateral token's underlying does not match wampl address", async () => {
+      const { ampl, router, mockCashToken, bondFactory, user, admin } = await loadFixture(fixture);
 
       const mockButtonCash = <MockButtonWrapper>(
         await deploy("MockButtonWrapper", admin, [mockCashToken.address, "Mock Button USDT", "MOCK-BTN-USDT"])
@@ -394,7 +444,10 @@ describe("WETH Loan Router", () => {
         throw new Error("Unable to create new bond");
       }
 
+      const userAddress = await user.getAddress();
       const amount = hre.ethers.utils.parseEther("100");
+      await ampl.mint(userAddress, amount);
+      await ampl.connect(user).approve(router.address, amount);
 
       // min output of 30 because the router will sell all A (20) and only B (10) tranche tokens, but keep the remaining B (20) tranche tokens and all the Z tranches
       const minOutput = hre.ethers.utils.parseEther("30");
@@ -402,19 +455,19 @@ describe("WETH Loan Router", () => {
         router
           .connect(user)
           .wrapAndBorrow(
+            amount,
             wrappedCashTokenBond.address,
             mockCashToken.address,
             [hre.ethers.utils.parseEther("20"), hre.ethers.utils.parseEther("10"), 0],
             minOutput,
             {
-              value: amount,
               gasLimit: 9500000,
             },
           ),
-      ).to.be.revertedWith("Collateral Token underlying does not match WETH address.");
+      ).to.be.revertedWith("Collateral Token underlying does not match WAMPL address.");
     });
 
-    it("should fail if no eth sent", async () => {
+    it("should fail if no ampl sent", async () => {
       const { router, mockCashToken, bond, user } = await loadFixture(fixture);
       const amount = hre.ethers.utils.parseEther("0");
 
@@ -424,21 +477,24 @@ describe("WETH Loan Router", () => {
         router
           .connect(user)
           .wrapAndBorrow(
+            amount,
             bond.address,
             mockCashToken.address,
             [hre.ethers.utils.parseEther("20"), hre.ethers.utils.parseEther("10"), 0],
             minOutput,
             {
-              value: amount,
               gasLimit: 9500000,
             },
           ),
-      ).to.be.revertedWith("ButtonTokenWethRouter: No ETH supplied");
+      ).to.be.revertedWith("WamplLoanRouter: No AMPL supplied");
     });
 
     it("should fail if less than minOutput", async () => {
-      const { router, mockCashToken, bond, user } = await loadFixture(fixture);
+      const { ampl, router, mockCashToken, bond, user } = await loadFixture(fixture);
+      const userAddress = await user.getAddress();
       const amount = hre.ethers.utils.parseEther("100");
+      await ampl.mint(userAddress, amount);
+      await ampl.connect(user).approve(router.address, amount);
 
       // min output of 30 because the router will sell all A (20) and only B (10) tranche tokens, but keep the remaining B (20) tranche tokens and all the Z tranches
       const minOutput = hre.ethers.utils.parseEther("30");
@@ -446,18 +502,22 @@ describe("WETH Loan Router", () => {
         router
           .connect(user)
           .wrapAndBorrow(
+            amount,
             bond.address,
             mockCashToken.address,
             [hre.ethers.utils.parseEther("20"), hre.ethers.utils.parseEther("5"), 0],
             minOutput,
-            { value: amount, gasLimit: 9500000 },
+            { gasLimit: 9500000 },
           ),
       ).to.be.revertedWith("LoanRouter: Insufficient output");
     });
 
     it("should fail if too many amounts", async () => {
-      const { router, mockCashToken, bond, user } = await loadFixture(fixture);
+      const { ampl, router, mockCashToken, bond, user } = await loadFixture(fixture);
+      const userAddress = await user.getAddress();
       const amount = hre.ethers.utils.parseEther("100");
+      await ampl.mint(userAddress, amount);
+      await ampl.connect(user).approve(router.address, amount);
 
       // min output of 30 because the router will sell all A (20) and only B (10) tranche tokens, but keep the remaining B (20) tranche tokens and all the Z tranches
       const minOutput = hre.ethers.utils.parseEther("30");
@@ -465,6 +525,7 @@ describe("WETH Loan Router", () => {
         router
           .connect(user)
           .wrapAndBorrow(
+            amount,
             bond.address,
             mockCashToken.address,
             [
@@ -474,14 +535,17 @@ describe("WETH Loan Router", () => {
               hre.ethers.utils.parseEther("5"),
             ],
             minOutput,
-            { value: amount, gasLimit: 9500000 },
+            { gasLimit: 9500000 },
           ),
       ).to.be.revertedWith("Invalid sales");
     });
 
     it("should fail if not enough sales", async () => {
-      const { router, mockCashToken, bond, user } = await loadFixture(fixture);
+      const { ampl, router, mockCashToken, bond, user } = await loadFixture(fixture);
+      const userAddress = await user.getAddress();
       const amount = hre.ethers.utils.parseEther("100");
+      await ampl.mint(userAddress, amount);
+      await ampl.connect(user).approve(router.address, amount);
 
       // min output of 30 because the router will sell all A (20) and only B (10) tranche tokens, but keep the remaining B (20) tranche tokens and all the Z tranches
       const minOutput = hre.ethers.utils.parseEther("30");
@@ -489,18 +553,22 @@ describe("WETH Loan Router", () => {
         router
           .connect(user)
           .wrapAndBorrow(
+            amount,
             bond.address,
             mockCashToken.address,
             [hre.ethers.utils.parseEther("20"), hre.ethers.utils.parseEther("10")],
             minOutput,
-            { value: amount, gasLimit: 9500000 },
+            { gasLimit: 9500000 },
           ),
       ).to.be.reverted;
     });
 
     it("should fail if sale too high", async () => {
-      const { router, mockCashToken, bond, user } = await loadFixture(fixture);
+      const { ampl, router, mockCashToken, bond, user } = await loadFixture(fixture);
+      const userAddress = await user.getAddress();
       const amount = hre.ethers.utils.parseEther("100");
+      await ampl.mint(userAddress, amount);
+      await ampl.connect(user).approve(router.address, amount);
 
       // min output of 30 because the router will sell all A (20) and only B (10) tranche tokens, but keep the remaining B (20) tranche tokens and all the Z tranches
       const minOutput = hre.ethers.utils.parseEther("30");
@@ -508,39 +576,66 @@ describe("WETH Loan Router", () => {
         router
           .connect(user)
           .wrapAndBorrow(
+            amount,
             bond.address,
             mockCashToken.address,
             [hre.ethers.utils.parseEther("25"), hre.ethers.utils.parseEther("5"), 0],
             minOutput,
-            { value: amount, gasLimit: 9500000 },
+            { gasLimit: 9500000 },
           ),
       ).to.be.reverted;
     });
 
-    it("gas [ @skip-on-coverage ]", async () => {
-      const { router, mockCashToken, bond, user } = await loadFixture(fixture);
-      const startingBalance = await user.getBalance();
+    it("should fail if router doesn't have sufficient ampl allowance from user", async () => {
+      const { ampl, router, mockCashToken, bond, user } = await loadFixture(fixture);
+      const userAddress = await user.getAddress();
       const amount = hre.ethers.utils.parseEther("100");
+      await ampl.mint(userAddress, amount);
+      await ampl.connect(user).approve(router.address, hre.ethers.utils.parseEther("80"));
+
+      // min output of 50 because the router will sell all A (20) and B (30) tranche tokens, but keep the Z tranches
+      await expect(
+        router
+          .connect(user)
+          .wrapAndBorrow(
+            amount,
+            bond.address,
+            mockCashToken.address,
+            [hre.ethers.utils.parseEther("20"), hre.ethers.utils.parseEther("10"), 0],
+            hre.ethers.utils.parseEther("50"),
+            { gasLimit: 9500000 },
+          ),
+      ).to.be.revertedWith("ERC20: insufficient allowance");
+    });
+
+    it("gas [ @skip-on-coverage ]", async () => {
+      const { ampl, router, mockCashToken, bond, user } = await loadFixture(fixture);
+      const userAddress = await user.getAddress();
+      const amount = hre.ethers.utils.parseEther("100");
+      await ampl.mint(userAddress, amount);
+      await ampl.connect(user).approve(router.address, amount);
+      const startingBalance = await user.getBalance();
 
       // min output of 30 because the router will sell all A (20) and only B (10) tranche tokens, but keep the remaining B (20) tranche tokens and all the Z tranches
       const minOutput = hre.ethers.utils.parseEther("30");
       const tx = await router
         .connect(user)
         .wrapAndBorrow(
+          amount,
           bond.address,
           mockCashToken.address,
           [hre.ethers.utils.parseEther("20"), hre.ethers.utils.parseEther("10"), 0],
           minOutput,
-          { value: amount, gasLimit: 9500000 },
+          { gasLimit: 9500000 },
         );
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("688342");
+      expect(gasUsed.toString()).to.equal("763396");
       const costOfGas = gasUsed.mul(receipt.effectiveGasPrice);
       expect(await user.getBalance()).to.eq(
-        startingBalance.sub(amount).sub(costOfGas),
-        "Expecting userBalance to equal startingBalance - amount - costOfGas.",
+        startingBalance.sub(costOfGas),
+        "Expecting userBalance to equal startingBalance - costOfGas.",
       );
     });
   });

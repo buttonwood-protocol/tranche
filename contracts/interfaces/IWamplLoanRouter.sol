@@ -21,7 +21,7 @@ interface IWamplLoanRouter {
         IERC20 currency,
         uint256[] memory sales,
         uint256 minOutput
-    ) external payable returns (uint256 amountOut);
+    ) external returns (uint256 amountOut);
 
     /**
      * @notice Borrow as much as possible against a given bond,
@@ -36,5 +36,5 @@ interface IWamplLoanRouter {
         IBondController bond,
         IERC20 currency,
         uint256 minOutput
-    ) external payable returns (uint256 amountOut);
+    ) external returns (uint256 amountOut);
 }
