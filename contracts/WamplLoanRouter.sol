@@ -5,10 +5,9 @@ import "./interfaces/IBondController.sol";
 import "./interfaces/ITranche.sol";
 import "./interfaces/IButtonWrapper.sol";
 import "./interfaces/IWAMPL.sol";
+import "./interfaces/IWamplLoanRouter.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./interfaces/IWamplLoanRouter.sol";
-import "./test/WAMPL.sol";
 
 /**
  * @dev Wampl Loan Router built on top of a LoanRouter of your choosing
@@ -17,6 +16,7 @@ import "./test/WAMPL.sol";
 contract WamplLoanRouter is IWamplLoanRouter {
     ILoanRouter public immutable loanRouter;
     IWAMPL public immutable wampl;
+    IERC20 public immutable ampl;
 
     /**
      * @dev Constructor for setting underlying loanRouter and wampl contracts
@@ -26,6 +26,8 @@ contract WamplLoanRouter is IWamplLoanRouter {
     constructor(ILoanRouter _loanRouter, IWAMPL _wampl) {
         loanRouter = _loanRouter;
         wampl = _wampl;
+        // Accessing AMPL contract from WAMPL contract
+        ampl = IERC20(_wampl.underlying());
     }
 
     /**
@@ -72,14 +74,11 @@ contract WamplLoanRouter is IWamplLoanRouter {
         IButtonWrapper wrapper = IButtonWrapper(bond.collateralToken());
         require(wrapper.underlying() == address(wampl), "Collateral Token underlying does not match WAMPL address.");
 
-        // Accessing AMPL contract from WAMPL
-        IERC20 ampl = IERC20(wampl.underlying());
-
         // Transferring AMPL to contract
         SafeERC20.safeTransferFrom(ampl, msg.sender, address(this), underlyingAmount);
 
         // Wrapping contract's balance of AMPL into WAMPL
-        SafeERC20.safeApprove(ampl, address(wampl), underlyingAmount);
+        ampl.approve(address(wampl), underlyingAmount);
         uint256 wamplAmount = wampl.deposit(underlyingAmount);
 
         // Approve loanRouter to take wampl
