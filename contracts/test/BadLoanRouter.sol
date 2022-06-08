@@ -8,10 +8,10 @@ import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
- * @dev Loan router for the UniswapV3 AMM
+ * @dev Purposely Bad Loan router to test failure conditions of Wampl/Weth Loan Routers.
  */
+/* solhint-disable */
 contract BadLoanRouter is ILoanRouter {
-
     uint256 public constant MAX_UINT256 = type(uint256).max;
 
     /**

@@ -54,7 +54,9 @@ describe("WAMPL Loan Router", () => {
     const wampl = <WAMPL>await deploy("WAMPL", admin, [ampl.address]);
 
     const router = <WamplLoanRouter>await deploy("WamplLoanRouter", admin, [loanRouter.address, wampl.address]);
-    const routerWithBadLoanRouter = <WamplLoanRouter>await deploy("WamplLoanRouter", admin, [badLoanRouter.address, wampl.address]);
+    const routerWithBadLoanRouter = <WamplLoanRouter>(
+      await deploy("WamplLoanRouter", admin, [badLoanRouter.address, wampl.address])
+    );
 
     const mockWrapperToken = <MockButtonWrapper>(
       await deploy("MockButtonWrapper", admin, [wampl.address, "Mock Button WAMPL", "MOCK-BTN-WAMPL"])
@@ -671,7 +673,7 @@ describe("WAMPL Loan Router", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("759338");
+      expect(gasUsed.toString()).to.equal("759334");
       const costOfGas = gasUsed.mul(receipt.effectiveGasPrice);
       expect(await user.getBalance()).to.eq(
         startingBalance.sub(costOfGas),

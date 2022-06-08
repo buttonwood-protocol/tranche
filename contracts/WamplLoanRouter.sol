@@ -40,7 +40,7 @@ contract WamplLoanRouter is IWamplLoanRouter {
         uint256[] memory sales,
         uint256 minOutput
     ) external override returns (uint256 amountOut) {
-        uint256 wamplBalance = _wamplWrapAndApprove(amplAmount, bond);
+        uint256 wamplBalance = _wamplWrapAndApprove(amplAmount);
         uint256 loanAmountOut = loanRouter.wrapAndBorrow(wamplBalance, bond, currency, sales, minOutput);
         require(loanAmountOut >= minOutput, "WamplLoanRouter: Insufficient output");
         _distributeLoanOutput(loanAmountOut, bond, currency);
@@ -56,7 +56,7 @@ contract WamplLoanRouter is IWamplLoanRouter {
         IERC20 currency,
         uint256 minOutput
     ) external override returns (uint256 amountOut) {
-        uint256 wamplBalance = _wamplWrapAndApprove(amplAmount, bond);
+        uint256 wamplBalance = _wamplWrapAndApprove(amplAmount);
         uint256 loanAmountOut = loanRouter.wrapAndBorrowMax(wamplBalance, bond, currency, minOutput);
         require(loanAmountOut >= minOutput, "WamplLoanRouter: Insufficient output");
         _distributeLoanOutput(loanAmountOut, bond, currency);
@@ -66,10 +66,9 @@ contract WamplLoanRouter is IWamplLoanRouter {
     /**
      * @dev Wraps the AMPL that was transferred to this contract and then approves loanRouter for entire amount
      * @dev No need to check that bond's collateral has WAMPL as underlying since deposit will fail otherwise
-     * @param bond The bond that is being borrowed from
      * @return WAMPL balance that was wrapped. Equal to loanRouter allowance for WAMPL.
      */
-    function _wamplWrapAndApprove(uint256 amplAmount, IBondController bond) internal returns (uint256) {
+    function _wamplWrapAndApprove(uint256 amplAmount) internal returns (uint256) {
         // Confirm that AMPL was sent
         require(amplAmount > 0, "WamplLoanRouter: No AMPL supplied");
 

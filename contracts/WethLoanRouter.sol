@@ -36,7 +36,7 @@ contract WethLoanRouter is IWethLoanRouter {
         uint256[] memory sales,
         uint256 minOutput
     ) external payable override returns (uint256 amountOut) {
-        uint256 wethBalance = _wethWrapAndApprove(bond);
+        uint256 wethBalance = _wethWrapAndApprove();
         uint256 loanAmountOut = loanRouter.wrapAndBorrow(wethBalance, bond, currency, sales, minOutput);
         require(loanAmountOut >= minOutput, "WethLoanRouter: Insufficient output");
         _distributeLoanOutput(loanAmountOut, bond, currency);
@@ -51,7 +51,7 @@ contract WethLoanRouter is IWethLoanRouter {
         IERC20 currency,
         uint256 minOutput
     ) external payable override returns (uint256 amountOut) {
-        uint256 wethBalance = _wethWrapAndApprove(bond);
+        uint256 wethBalance = _wethWrapAndApprove();
         uint256 loanAmountOut = loanRouter.wrapAndBorrowMax(wethBalance, bond, currency, minOutput);
         require(loanAmountOut >= minOutput, "WethLoanRouter: Insufficient output");
         _distributeLoanOutput(loanAmountOut, bond, currency);
@@ -61,10 +61,9 @@ contract WethLoanRouter is IWethLoanRouter {
     /**
      * @dev Wraps the ETH that was transferred to this contract and then approves loanRouter for entire amount
      * @dev No need to check that bond's collateral has WETH as underlying since deposit will fail otherwise
-     * @param bond The bond that is being borrowed from
      * @return WETH balance that was wrapped. Equal to loanRouter allowance for WETH.
      */
-    function _wethWrapAndApprove(IBondController bond) internal returns (uint256) {
+    function _wethWrapAndApprove() internal returns (uint256) {
         // Confirm that ETH was sent
         uint256 value = msg.value;
         require(value > 0, "ButtonTokenWethRouter: No ETH supplied");

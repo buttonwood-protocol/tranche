@@ -51,7 +51,9 @@ describe("WETH Loan Router", () => {
 
     const weth = <WETH9>await deploy("WETH9", admin, []);
     const router = <WethLoanRouter>await deploy("WethLoanRouter", admin, [loanRouter.address, weth.address]);
-    const routerWithBadLoanRouter = <WethLoanRouter>await deploy("WethLoanRouter", admin, [badLoanRouter.address, weth.address]);
+    const routerWithBadLoanRouter = <WethLoanRouter>(
+      await deploy("WethLoanRouter", admin, [badLoanRouter.address, weth.address])
+    );
 
     const mockWrapperToken = <MockButtonWrapper>(
       await deploy("MockButtonWrapper", admin, [weth.address, "Mock Button WETH", "MOCK-BTN-WETH"])
@@ -274,10 +276,12 @@ describe("WETH Loan Router", () => {
 
     // min output of 50 will not be enough because the badLoanRouter will output 0
     await expect(
-      routerWithBadLoanRouter.connect(user).wrapAndBorrowMax(bond.address, mockCashToken.address, hre.ethers.utils.parseEther("50"), {
-        value: amount,
-        gasLimit: 9500000,
-      }),
+      routerWithBadLoanRouter
+        .connect(user)
+        .wrapAndBorrowMax(bond.address, mockCashToken.address, hre.ethers.utils.parseEther("50"), {
+          value: amount,
+          gasLimit: 9500000,
+        }),
     ).to.be.revertedWith("WethLoanRouter: Insufficient output");
   });
 
@@ -574,7 +578,7 @@ describe("WETH Loan Router", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("686776");
+      expect(gasUsed.toString()).to.equal("686772");
       const costOfGas = gasUsed.mul(receipt.effectiveGasPrice);
       expect(await user.getBalance()).to.eq(
         startingBalance.sub(amount).sub(costOfGas),
