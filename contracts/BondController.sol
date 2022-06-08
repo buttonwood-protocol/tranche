@@ -1,4 +1,4 @@
-pragma solidity 0.8.3;
+pragma solidity ^0.8.3;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
@@ -33,9 +33,9 @@ contract BondController is IBondController, OwnableUpgradeable {
     TrancheData[] public override tranches;
     uint256 public override trancheCount;
     mapping(address => bool) public trancheTokenAddresses;
-    uint256 public creationDate;
-    uint256 public maturityDate;
-    bool public isMature;
+    uint256 public override creationDate;
+    uint256 public override maturityDate;
+    bool public override isMature;
     uint256 public totalDebt;
 
     // Maximum amount of collateral that can be deposited into this bond
