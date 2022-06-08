@@ -16,10 +16,12 @@ import {
   WethLoanRouter,
   UniV3LoanRouter,
   WETH9,
+  BadLoanRouter,
 } from "../typechain";
 
 interface TestContext {
   router: WethLoanRouter;
+  routerWithBadLoanRouter: WethLoanRouter;
   loanRouter: UniV3LoanRouter;
   weth: WETH9;
   mockWrapperToken: MockButtonWrapper;
@@ -45,8 +47,11 @@ describe("WETH Loan Router", () => {
 
     const mockSwapRouter = <MockSwapRouter>await deploy("MockSwapRouter", user, []);
     const loanRouter = <UniV3LoanRouter>await deploy("UniV3LoanRouter", admin, [mockSwapRouter.address]);
+    const badLoanRouter = <BadLoanRouter>await deploy("BadLoanRouter", admin, []);
+
     const weth = <WETH9>await deploy("WETH9", admin, []);
     const router = <WethLoanRouter>await deploy("WethLoanRouter", admin, [loanRouter.address, weth.address]);
+    const routerWithBadLoanRouter = <WethLoanRouter>await deploy("WethLoanRouter", admin, [badLoanRouter.address, weth.address]);
 
     const mockWrapperToken = <MockButtonWrapper>(
       await deploy("MockButtonWrapper", admin, [weth.address, "Mock Button WETH", "MOCK-BTN-WETH"])
@@ -92,6 +97,7 @@ describe("WETH Loan Router", () => {
 
     return {
       router,
+      routerWithBadLoanRouter,
       loanRouter,
       weth,
       mockWrapperToken,
@@ -232,7 +238,7 @@ describe("WETH Loan Router", () => {
             value: amount,
             gasLimit: 9500000,
           }),
-      ).to.be.revertedWith("Collateral Token underlying does not match WETH address.");
+      ).to.be.revertedWith("ERC20: insufficient allowance");
     });
 
     it("should fail if no eth sent", async () => {
@@ -252,7 +258,7 @@ describe("WETH Loan Router", () => {
       const { router, mockCashToken, bond, user } = await loadFixture(fixture);
       const amount = hre.ethers.utils.parseEther("80");
 
-      // min output of 50 because the router will sell all A (20) and B (30) tranche tokens, but keep the Z tranches
+      // min output of 50 will not be enough because the router will sell all A (16) and B (24) tranche tokens, which is not enough
       await expect(
         router.connect(user).wrapAndBorrowMax(bond.address, mockCashToken.address, hre.ethers.utils.parseEther("50"), {
           value: amount,
@@ -260,6 +266,19 @@ describe("WETH Loan Router", () => {
         }),
       ).to.be.revertedWith("LoanRouter: Insufficient output");
     });
+  });
+
+  it("WethLoanRouter should fail on insufficient output even if LoanRouter does not", async () => {
+    const { routerWithBadLoanRouter, mockCashToken, bond, user } = await loadFixture(fixture);
+    const amount = hre.ethers.utils.parseEther("100");
+
+    // min output of 50 will not be enough because the badLoanRouter will output 0
+    await expect(
+      routerWithBadLoanRouter.connect(user).wrapAndBorrowMax(bond.address, mockCashToken.address, hre.ethers.utils.parseEther("50"), {
+        value: amount,
+        gasLimit: 9500000,
+      }),
+    ).to.be.revertedWith("WethLoanRouter: Insufficient output");
   });
 
   describe("wrapAndBorrow", function () {
@@ -411,7 +430,7 @@ describe("WETH Loan Router", () => {
               gasLimit: 9500000,
             },
           ),
-      ).to.be.revertedWith("Collateral Token underlying does not match WETH address.");
+      ).to.be.revertedWith("ERC20: insufficient allowance");
     });
 
     it("should fail if no eth sent", async () => {
@@ -440,7 +459,7 @@ describe("WETH Loan Router", () => {
       const { router, mockCashToken, bond, user } = await loadFixture(fixture);
       const amount = hre.ethers.utils.parseEther("100");
 
-      // min output of 30 because the router will sell all A (20) and only B (10) tranche tokens, but keep the remaining B (20) tranche tokens and all the Z tranches
+      // min output of 30 will not be enough because loanRouter is only selling 20 A, and 5 B tokens for 25 USDT
       const minOutput = hre.ethers.utils.parseEther("30");
       await expect(
         router
@@ -453,6 +472,25 @@ describe("WETH Loan Router", () => {
             { value: amount, gasLimit: 9500000 },
           ),
       ).to.be.revertedWith("LoanRouter: Insufficient output");
+    });
+
+    it("WethLoanRouter should fail on insufficient output even if LoanRouter does not", async () => {
+      const { routerWithBadLoanRouter, mockCashToken, bond, user } = await loadFixture(fixture);
+      const amount = hre.ethers.utils.parseEther("100");
+
+      // min output of 30 will not be enough because the badLoanRouter will output 0
+      const minOutput = hre.ethers.utils.parseEther("30");
+      await expect(
+        routerWithBadLoanRouter
+          .connect(user)
+          .wrapAndBorrow(
+            bond.address,
+            mockCashToken.address,
+            [hre.ethers.utils.parseEther("20"), hre.ethers.utils.parseEther("5"), 0],
+            minOutput,
+            { value: amount, gasLimit: 9500000 },
+          ),
+      ).to.be.revertedWith("WethLoanRouter: Insufficient output");
     });
 
     it("should fail if too many amounts", async () => {
@@ -536,7 +574,7 @@ describe("WETH Loan Router", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("688342");
+      expect(gasUsed.toString()).to.equal("686776");
       const costOfGas = gasUsed.mul(receipt.effectiveGasPrice);
       expect(await user.getBalance()).to.eq(
         startingBalance.sub(amount).sub(costOfGas),

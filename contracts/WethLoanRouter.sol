@@ -38,6 +38,7 @@ contract WethLoanRouter is IWethLoanRouter {
     ) external payable override returns (uint256 amountOut) {
         uint256 wethBalance = _wethWrap(bond);
         uint256 loanAmountOut = loanRouter.wrapAndBorrow(wethBalance, bond, currency, sales, minOutput);
+        require(loanAmountOut >= minOutput, "WethLoanRouter: Insufficient output");
         _distributeLoanOutput(loanAmountOut, bond, currency);
         return loanAmountOut;
     }
@@ -52,12 +53,14 @@ contract WethLoanRouter is IWethLoanRouter {
     ) external payable override returns (uint256 amountOut) {
         uint256 wethBalance = _wethWrap(bond);
         uint256 loanAmountOut = loanRouter.wrapAndBorrowMax(wethBalance, bond, currency, minOutput);
+        require(loanAmountOut >= minOutput, "WethLoanRouter: Insufficient output");
         _distributeLoanOutput(loanAmountOut, bond, currency);
         return loanAmountOut;
     }
 
     /**
      * @dev Wraps the ETH that was transferred to this contract and then approves loanRouter for entire amount
+     * @dev No need to check that bond's collateral has WETH as underlying since deposit will fail otherwise
      * @param bond The bond that is being borrowed from
      * @return WETH balance that was wrapped. Equal to loanRouter allowance for WETH.
      */
@@ -65,10 +68,6 @@ contract WethLoanRouter is IWethLoanRouter {
         // Confirm that ETH was sent
         uint256 value = msg.value;
         require(value > 0, "ButtonTokenWethRouter: No ETH supplied");
-
-        // Confirm that bond's collateral has WETH as underlying
-        IButtonWrapper wrapper = IButtonWrapper(bond.collateralToken());
-        require(wrapper.underlying() == address(weth), "Collateral Token underlying does not match WETH address.");
 
         // Wrapping ETH into weth
         weth.deposit{ value: value }();

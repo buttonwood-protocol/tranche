@@ -16,10 +16,12 @@ import {
   UniV3LoanRouter,
   WAMPL,
   WamplLoanRouter,
+  BadLoanRouter,
 } from "../typechain";
 
 interface TestContext {
   router: WamplLoanRouter;
+  routerWithBadLoanRouter: WamplLoanRouter;
   loanRouter: UniV3LoanRouter;
   ampl: MockERC20;
   wampl: WAMPL;
@@ -46,11 +48,13 @@ describe("WAMPL Loan Router", () => {
 
     const mockSwapRouter = <MockSwapRouter>await deploy("MockSwapRouter", user, []);
     const loanRouter = <UniV3LoanRouter>await deploy("UniV3LoanRouter", admin, [mockSwapRouter.address]);
+    const badLoanRouter = <BadLoanRouter>await deploy("BadLoanRouter", admin, []);
 
     const ampl = <MockERC20>await deploy("MockERC20", admin, ["Mock AMPL", "MOCK-AMPL"]);
     const wampl = <WAMPL>await deploy("WAMPL", admin, [ampl.address]);
 
     const router = <WamplLoanRouter>await deploy("WamplLoanRouter", admin, [loanRouter.address, wampl.address]);
+    const routerWithBadLoanRouter = <WamplLoanRouter>await deploy("WamplLoanRouter", admin, [badLoanRouter.address, wampl.address]);
 
     const mockWrapperToken = <MockButtonWrapper>(
       await deploy("MockButtonWrapper", admin, [wampl.address, "Mock Button WAMPL", "MOCK-BTN-WAMPL"])
@@ -90,11 +94,10 @@ describe("WAMPL Loan Router", () => {
       trancheContracts.push(tranche);
     }
     // load up the mock uniswap with tokens for swapping
-    // ToDo: @mark-toda Why do the wrapper-tests in the other loan routers do this with the collateral and not wrapper token?
-    // await mockCollateralToken.mint(mockSwapRouter.address, hre.ethers.utils.parseEther("1000000000000"));
     await mockCashToken.mint(mockSwapRouter.address, hre.ethers.utils.parseEther("1000000000000"));
     return {
       router,
+      routerWithBadLoanRouter,
       loanRouter,
       ampl,
       wampl,
@@ -250,7 +253,7 @@ describe("WAMPL Loan Router", () => {
               gasLimit: 9500000,
             },
           ),
-      ).to.be.revertedWith("Collateral Token underlying does not match WAMPL address.");
+      ).to.be.revertedWith("ERC20: insufficient allowance");
     });
 
     it("should fail if no wampl sent", async () => {
@@ -274,7 +277,7 @@ describe("WAMPL Loan Router", () => {
       await ampl.mint(userAddress, amount);
       await ampl.connect(user).approve(router.address, amount);
 
-      // min output of 50 because the router will sell all A (20) and B (30) tranche tokens, but keep the Z tranches
+      // min output of 50 will not be enough because the router will sell all A (16) and B (24) tranche tokens, which is not enough
       await expect(
         router
           .connect(user)
@@ -282,6 +285,23 @@ describe("WAMPL Loan Router", () => {
             gasLimit: 9500000,
           }),
       ).to.be.revertedWith("LoanRouter: Insufficient output");
+    });
+
+    it("WamplLoanRouter should fail on insufficient output even if LoanRouter does not", async () => {
+      const { ampl, routerWithBadLoanRouter, mockCashToken, bond, user } = await loadFixture(fixture);
+      const userAddress = await user.getAddress();
+      const amount = hre.ethers.utils.parseEther("100");
+      await ampl.mint(userAddress, amount);
+      await ampl.connect(user).approve(routerWithBadLoanRouter.address, amount);
+
+      // min output of 50 will not be enough because the badLoanRouter will output 0
+      await expect(
+        routerWithBadLoanRouter
+          .connect(user)
+          .wrapAndBorrowMax(amount, bond.address, mockCashToken.address, hre.ethers.utils.parseEther("50"), {
+            gasLimit: 9500000,
+          }),
+      ).to.be.revertedWith("WamplLoanRouter: Insufficient output");
     });
 
     it("should fail if router doesn't have sufficient ampl allowance from user", async () => {
@@ -461,7 +481,7 @@ describe("WAMPL Loan Router", () => {
               gasLimit: 9500000,
             },
           ),
-      ).to.be.revertedWith("Collateral Token underlying does not match WAMPL address.");
+      ).to.be.revertedWith("ERC20: insufficient allowance");
     });
 
     it("should fail if no ampl sent", async () => {
@@ -493,7 +513,7 @@ describe("WAMPL Loan Router", () => {
       await ampl.mint(userAddress, amount);
       await ampl.connect(user).approve(router.address, amount);
 
-      // min output of 30 because the router will sell all A (20) and only B (10) tranche tokens, but keep the remaining B (20) tranche tokens and all the Z tranches
+      // min output of 30 will not be enough because loanRouter is only selling 20 A, and 5 B tokens for 25 USDT
       const minOutput = hre.ethers.utils.parseEther("30");
       await expect(
         router
@@ -507,6 +527,29 @@ describe("WAMPL Loan Router", () => {
             { gasLimit: 9500000 },
           ),
       ).to.be.revertedWith("LoanRouter: Insufficient output");
+    });
+
+    it("WamplLoanRouter should fail on insufficient output even if LoanRouter does not", async () => {
+      const { ampl, routerWithBadLoanRouter, mockCashToken, bond, user } = await loadFixture(fixture);
+      const userAddress = await user.getAddress();
+      const amount = hre.ethers.utils.parseEther("100");
+      await ampl.mint(userAddress, amount);
+      await ampl.connect(user).approve(routerWithBadLoanRouter.address, amount);
+
+      // min output of 30 will not be enough because the badLoanRouter will output 0
+      const minOutput = hre.ethers.utils.parseEther("30");
+      await expect(
+        routerWithBadLoanRouter
+          .connect(user)
+          .wrapAndBorrow(
+            amount,
+            bond.address,
+            mockCashToken.address,
+            [hre.ethers.utils.parseEther("20"), hre.ethers.utils.parseEther("5"), 0],
+            minOutput,
+            { gasLimit: 9500000 },
+          ),
+      ).to.be.revertedWith("WamplLoanRouter: Insufficient output");
     });
 
     it("should fail if too many amounts", async () => {
@@ -628,7 +671,7 @@ describe("WAMPL Loan Router", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("760923");
+      expect(gasUsed.toString()).to.equal("759338");
       const costOfGas = gasUsed.mul(receipt.effectiveGasPrice);
       expect(await user.getBalance()).to.eq(
         startingBalance.sub(costOfGas),
