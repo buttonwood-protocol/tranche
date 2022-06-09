@@ -320,7 +320,7 @@ describe("WAMPL Loan Router", () => {
           .wrapAndBorrowMax(amount, bond.address, mockCashToken.address, hre.ethers.utils.parseEther("50"), {
             gasLimit: 9500000,
           }),
-      ).to.be.revertedWith("ERC20: insufficient allowance");
+      ).to.be.revertedWith("TRANSFER_FROM_FAILED");
     });
   });
 
@@ -647,7 +647,7 @@ describe("WAMPL Loan Router", () => {
             hre.ethers.utils.parseEther("50"),
             { gasLimit: 9500000 },
           ),
-      ).to.be.revertedWith("ERC20: insufficient allowance");
+      ).to.be.revertedWith("TRANSFER_FROM_FAILED");
     });
 
     it("gas [ @skip-on-coverage ]", async () => {
@@ -673,7 +673,7 @@ describe("WAMPL Loan Router", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("759395");
+      expect(gasUsed.toString()).to.equal("754318");
       const costOfGas = gasUsed.mul(receipt.effectiveGasPrice);
       expect(await user.getBalance()).to.eq(
         startingBalance.sub(costOfGas),

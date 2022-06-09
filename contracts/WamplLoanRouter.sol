@@ -7,7 +7,8 @@ import "./interfaces/IButtonWrapper.sol";
 import "./interfaces/IWAMPL.sol";
 import "./interfaces/IWamplLoanRouter.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@rari-capital/solmate/src/utils/SafeTransferLib.sol";
+import "@rari-capital/solmate/src/tokens/ERC20.sol";
 
 /**
  * @dev Wampl Loan Router built on top of a LoanRouter of your choosing
@@ -16,7 +17,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 contract WamplLoanRouter is IWamplLoanRouter {
     ILoanRouter public immutable loanRouter;
     IWAMPL public immutable wampl;
-    IERC20 public immutable ampl;
+    ERC20 public immutable ampl;
 
     /**
      * @dev Constructor for setting underlying loanRouter and wampl contracts
@@ -27,7 +28,7 @@ contract WamplLoanRouter is IWamplLoanRouter {
         loanRouter = _loanRouter;
         wampl = _wampl;
         // Accessing AMPL contract from WAMPL contract
-        ampl = IERC20(_wampl.underlying());
+        ampl = ERC20(_wampl.underlying());
     }
 
     /**
@@ -73,7 +74,7 @@ contract WamplLoanRouter is IWamplLoanRouter {
         require(amplAmount > 0, "WamplLoanRouter: No AMPL supplied");
 
         // Transferring AMPL to contract
-        SafeERC20.safeTransferFrom(ampl, msg.sender, address(this), amplAmount);
+        SafeTransferLib.safeTransferFrom(ampl, msg.sender, address(this), amplAmount);
 
         // Wrapping contract's balance of AMPL into WAMPL
         ampl.approve(address(wampl), amplAmount);
@@ -96,13 +97,13 @@ contract WamplLoanRouter is IWamplLoanRouter {
         IERC20 currency
     ) internal {
         // Send loan currenncy out from this contract to msg.sender
-        SafeERC20.safeTransfer(currency, msg.sender, amountOut);
+        SafeTransferLib.safeTransfer(ERC20(address(currency)), msg.sender, amountOut);
 
         // Send out the tranche tokens from this contract to the msg.sender
         ITranche tranche;
         for (uint256 i = 0; i < bond.trancheCount(); i++) {
             (tranche, ) = bond.tranches(i);
-            SafeERC20.safeTransfer(tranche, msg.sender, tranche.balanceOf(address(this)));
+            SafeTransferLib.safeTransfer(ERC20(address(tranche)), msg.sender, tranche.balanceOf(address(this)));
         }
     }
 }
