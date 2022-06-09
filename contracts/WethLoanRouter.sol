@@ -37,10 +37,10 @@ contract WethLoanRouter is IWethLoanRouter {
         uint256 minOutput
     ) external payable override returns (uint256 amountOut) {
         uint256 wethBalance = _wethWrapAndApprove();
-        uint256 loanAmountOut = loanRouter.wrapAndBorrow(wethBalance, bond, currency, sales, minOutput);
-        require(loanAmountOut >= minOutput, "WethLoanRouter: Insufficient output");
-        _distributeLoanOutput(loanAmountOut, bond, currency);
-        return loanAmountOut;
+        amountOut = loanRouter.wrapAndBorrow(wethBalance, bond, currency, sales, minOutput);
+        require(amountOut >= minOutput, "WethLoanRouter: Insufficient output");
+        _distributeLoanOutput(amountOut, bond, currency);
+        return amountOut;
     }
 
     /**
@@ -52,10 +52,10 @@ contract WethLoanRouter is IWethLoanRouter {
         uint256 minOutput
     ) external payable override returns (uint256 amountOut) {
         uint256 wethBalance = _wethWrapAndApprove();
-        uint256 loanAmountOut = loanRouter.wrapAndBorrowMax(wethBalance, bond, currency, minOutput);
-        require(loanAmountOut >= minOutput, "WethLoanRouter: Insufficient output");
-        _distributeLoanOutput(loanAmountOut, bond, currency);
-        return loanAmountOut;
+        amountOut = loanRouter.wrapAndBorrowMax(wethBalance, bond, currency, minOutput);
+        require(amountOut >= minOutput, "WethLoanRouter: Insufficient output");
+        _distributeLoanOutput(amountOut, bond, currency);
+        return amountOut;
     }
 
     /**

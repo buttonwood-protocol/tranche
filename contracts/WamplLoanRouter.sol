@@ -41,10 +41,10 @@ contract WamplLoanRouter is IWamplLoanRouter {
         uint256 minOutput
     ) external override returns (uint256 amountOut) {
         uint256 wamplBalance = _wamplWrapAndApprove(amplAmount);
-        uint256 loanAmountOut = loanRouter.wrapAndBorrow(wamplBalance, bond, currency, sales, minOutput);
-        require(loanAmountOut >= minOutput, "WamplLoanRouter: Insufficient output");
-        _distributeLoanOutput(loanAmountOut, bond, currency);
-        return loanAmountOut;
+        amountOut = loanRouter.wrapAndBorrow(wamplBalance, bond, currency, sales, minOutput);
+        require(amountOut >= minOutput, "WamplLoanRouter: Insufficient output");
+        _distributeLoanOutput(amountOut, bond, currency);
+        return amountOut;
     }
 
     /**
@@ -57,10 +57,10 @@ contract WamplLoanRouter is IWamplLoanRouter {
         uint256 minOutput
     ) external override returns (uint256 amountOut) {
         uint256 wamplBalance = _wamplWrapAndApprove(amplAmount);
-        uint256 loanAmountOut = loanRouter.wrapAndBorrowMax(wamplBalance, bond, currency, minOutput);
-        require(loanAmountOut >= minOutput, "WamplLoanRouter: Insufficient output");
-        _distributeLoanOutput(loanAmountOut, bond, currency);
-        return loanAmountOut;
+        amountOut = loanRouter.wrapAndBorrowMax(wamplBalance, bond, currency, minOutput);
+        require(amountOut >= minOutput, "WamplLoanRouter: Insufficient output");
+        _distributeLoanOutput(amountOut, bond, currency);
+        return amountOut;
     }
 
     /**
