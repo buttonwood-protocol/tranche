@@ -7,7 +7,8 @@ import "./interfaces/ITranche.sol";
 import "./interfaces/IButtonWrapper.sol";
 import "./interfaces/IWETH.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@rari-capital/solmate/src/utils/SafeTransferLib.sol";
+import "@rari-capital/solmate/src/tokens/ERC20.sol";
 
 /**
  * @dev Weth Loan Router built on top of a LoanRouter of your choosing
@@ -36,10 +37,11 @@ contract WethLoanRouter is IWethLoanRouter {
         uint256[] memory sales,
         uint256 minOutput
     ) external payable override returns (uint256 amountOut) {
-        uint256 wethBalance = _wethWrap(bond);
-        uint256 loanAmountOut = loanRouter.wrapAndBorrow(wethBalance, bond, currency, sales, minOutput);
-        _distributeLoanOutput(loanAmountOut, bond, currency);
-        return loanAmountOut;
+        uint256 wethBalance = _wethWrapAndApprove();
+        amountOut = loanRouter.wrapAndBorrow(wethBalance, bond, currency, sales, minOutput);
+        require(amountOut >= minOutput, "WethLoanRouter: Insufficient output");
+        _distributeLoanOutput(amountOut, bond, currency);
+        return amountOut;
     }
 
     /**
@@ -50,25 +52,22 @@ contract WethLoanRouter is IWethLoanRouter {
         IERC20 currency,
         uint256 minOutput
     ) external payable override returns (uint256 amountOut) {
-        uint256 wethBalance = _wethWrap(bond);
-        uint256 loanAmountOut = loanRouter.wrapAndBorrowMax(wethBalance, bond, currency, minOutput);
-        _distributeLoanOutput(loanAmountOut, bond, currency);
-        return loanAmountOut;
+        uint256 wethBalance = _wethWrapAndApprove();
+        amountOut = loanRouter.wrapAndBorrowMax(wethBalance, bond, currency, minOutput);
+        require(amountOut >= minOutput, "WethLoanRouter: Insufficient output");
+        _distributeLoanOutput(amountOut, bond, currency);
+        return amountOut;
     }
 
     /**
      * @dev Wraps the ETH that was transferred to this contract and then approves loanRouter for entire amount
-     * @param bond The bond that is being borrowed from
+     * @dev No need to check that bond's collateral has WETH as underlying since deposit will fail otherwise
      * @return WETH balance that was wrapped. Equal to loanRouter allowance for WETH.
      */
-    function _wethWrap(IBondController bond) internal returns (uint256) {
+    function _wethWrapAndApprove() internal returns (uint256) {
         // Confirm that ETH was sent
         uint256 value = msg.value;
         require(value > 0, "ButtonTokenWethRouter: No ETH supplied");
-
-        // Confirm that bond's collateral has WETH as underlying
-        IButtonWrapper wrapper = IButtonWrapper(bond.collateralToken());
-        require(wrapper.underlying() == address(weth), "Collateral Token underlying does not match WETH address.");
 
         // Wrapping ETH into weth
         weth.deposit{ value: value }();
@@ -91,13 +90,13 @@ contract WethLoanRouter is IWethLoanRouter {
         IERC20 currency
     ) internal {
         // Send loan currenncy out from this contract to msg.sender
-        SafeERC20.safeTransfer(currency, msg.sender, amountOut);
+        SafeTransferLib.safeTransfer(ERC20(address(currency)), msg.sender, amountOut);
 
         // Send out the tranche tokens from this contract to the msg.sender
         ITranche tranche;
         for (uint256 i = 0; i < bond.trancheCount(); i++) {
             (tranche, ) = bond.tranches(i);
-            SafeERC20.safeTransfer(tranche, msg.sender, tranche.balanceOf(address(this)));
+            SafeTransferLib.safeTransfer(ERC20(address(tranche)), msg.sender, tranche.balanceOf(address(this)));
         }
     }
 }
