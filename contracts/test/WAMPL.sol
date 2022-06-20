@@ -3,6 +3,7 @@ pragma solidity 0.8.3;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+// @title Test contract that wraps AMPL 1-to-1
 contract WAMPL {
     string public name = "Wrapped Ampl";
     string public symbol = "WAMPL";
@@ -37,6 +38,10 @@ contract WAMPL {
         balanceOf[msg.sender] -= amplAmount;
         SafeERC20.safeTransfer(IERC20(ampl), msg.sender, amplAmount);
         emit Withdrawal(msg.sender, amplAmount);
+    }
+
+    function burn(uint256 wamples) public {
+        return withdraw(wamples);
     }
 
     function totalSupply() public view returns (uint256) {
