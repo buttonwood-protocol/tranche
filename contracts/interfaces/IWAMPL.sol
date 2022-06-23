@@ -20,4 +20,8 @@ interface IWAMPL is IERC20 {
 
     /// @return The address of the underlying "wrapped" token ie) AMPL.
     function underlying() external view returns (address);
+
+    /// @param wamples The amount of wAMPL tokens.
+    /// @return The amount of AMPL tokens exchangeable.
+    function wrapperToUnderlying(uint256 wamples) external view returns (uint256);
 }
