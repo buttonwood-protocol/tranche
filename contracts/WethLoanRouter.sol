@@ -5,7 +5,7 @@ import "./interfaces/ILoanRouter.sol";
 import "./interfaces/IBondController.sol";
 import "./interfaces/ITranche.sol";
 import "./interfaces/IButtonWrapper.sol";
-import "./interfaces/IWETH.sol";
+import "./interfaces/IWETH9.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@rari-capital/solmate/src/utils/SafeTransferLib.sol";
 import "@rari-capital/solmate/src/tokens/ERC20.sol";
