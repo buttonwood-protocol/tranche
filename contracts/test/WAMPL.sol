@@ -81,4 +81,8 @@ contract WAMPL {
     function underlying() external view returns (address) {
         return ampl;
     }
+
+    function wrapperToUnderlying(uint256 wamples) external view returns (uint256) {
+        return wamples;
+    }
 }
