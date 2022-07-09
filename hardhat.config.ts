@@ -78,7 +78,7 @@ const config: HardhatUserConfig = {
     rinkeby: createTestnetConfig("rinkeby"),
     ropsten: createTestnetConfig("ropsten"),
     mainnet: {
-      url: `https://mainnet.infura.io/v3/806f53d332524f9bac17552bf23c77ef`,
+      url: "https://mainnet.infura.io/v3/" + infuraApiKey,
     },
   },
   paths: {
