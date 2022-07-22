@@ -34,6 +34,8 @@ interface IBondController {
 
     function creationDate() external view returns (uint256 creationDate);
 
+    function totalDebt() external view returns (uint256 totalDebt);
+
     /**
      * @dev Deposit `amount` tokens from `msg.sender`, get tranche tokens in return
      * Requirements:

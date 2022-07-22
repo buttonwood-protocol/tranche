@@ -36,7 +36,7 @@ contract BondController is IBondController, OwnableUpgradeable {
     uint256 public override creationDate;
     uint256 public override maturityDate;
     bool public override isMature;
-    uint256 public totalDebt;
+    uint256 public override totalDebt;
 
     // Maximum amount of collateral that can be deposited into this bond
     // Used as a guardrail for initial launch.
