@@ -1,4 +1,4 @@
-pragma solidity 0.8.3;
+pragma solidity ^0.8.3;
 
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -27,6 +27,12 @@ interface IBondController {
     function trancheCount() external view returns (uint256 count);
 
     function feeBps() external view returns (uint256 fee);
+
+    function maturityDate() external view returns (uint256 maturityDate);
+
+    function isMature() external view returns (bool isMature);
+
+    function creationDate() external view returns (uint256 creationDate);
 
     /**
      * @dev Deposit `amount` tokens from `msg.sender`, get tranche tokens in return
