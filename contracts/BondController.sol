@@ -25,9 +25,9 @@ contract BondController is IBondController, OwnableUpgradeable {
     // Maximum fee in terms of basis points
     uint256 private constant MAX_FEE_BPS = 50;
 
-    // to avoid precision loss and other weird math from a small initial deposit
-    // we require at least a minimum initial deposit
-    uint256 private constant MINIMUM_FIRST_DEPOSIT = 10e9;
+    // to avoid precision loss and other weird math from a small total debt
+    // we require the debt to be at least MINIMUM_VALID_DEBT if any
+    uint256 private constant MINIMUM_VALID_DEBT = 10e9;
 
     address public override collateralToken;
     TrancheData[] public override tranches;
@@ -103,7 +103,6 @@ contract BondController is IBondController, OwnableUpgradeable {
 
         // saving totalDebt in memory to minimize sloads
         uint256 _totalDebt = totalDebt;
-        require(_totalDebt > 0 || amount >= MINIMUM_FIRST_DEPOSIT, "BondController: invalid initial amount");
         require(!isMature, "BondController: Already mature");
 
         uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(this));
@@ -142,8 +141,9 @@ contract BondController is IBondController, OwnableUpgradeable {
 
             _tranches[i].token.mint(_msgSender(), trancheValue - fee);
         }
-
         emit Deposit(_msgSender(), amount, _feeBps);
+
+        _enforceTotalDebt();
     }
 
     /**
@@ -217,10 +217,12 @@ contract BondController is IBondController, OwnableUpgradeable {
         uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(this));
         // return as a proportion of the total debt redeemed
         uint256 returnAmount = (total * collateralBalance) / totalDebt;
+
         totalDebt -= total;
         TransferHelper.safeTransfer(collateralToken, _msgSender(), returnAmount);
-
         emit Redeem(_msgSender(), amounts);
+
+        _enforceTotalDebt();
     }
 
     /**
@@ -280,5 +282,10 @@ contract BondController is IBondController, OwnableUpgradeable {
             target[0] = trancheLetters[index];
         }
         return string(target);
+    }
+
+    // @dev Ensuring total debt isn't too small
+    function _enforceTotalDebt() internal {
+        require(totalDebt == 0 || totalDebt >= MINIMUM_VALID_DEBT, "BondController: Expected minimum valid debt");
     }
 }

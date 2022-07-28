@@ -392,7 +392,7 @@ describe("Uniswap V3 Loan Router", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("481981");
+      expect(gasUsed.toString()).to.equal("482158");
     });
   });
 });
@@ -879,7 +879,7 @@ describe("Uniswap V3 Loan Router with wrapper", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("567657");
+      expect(gasUsed.toString()).to.equal("567834");
     });
   });
 });
