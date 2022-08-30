@@ -7,6 +7,7 @@ import "solidity-coverage";
 import "./tasks/accounts";
 import "./tasks/clean";
 import "./tasks/deployers";
+import "./tasks/deposit";
 import "./test/utils/loadDotEnv";
 import { resolve } from "path";
 import { Wallet } from "ethers";
