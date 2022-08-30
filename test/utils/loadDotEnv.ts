@@ -1,11 +1,11 @@
-import fs from 'fs';
+import fs from "fs";
 
 function loadDotEnv() {
   try {
-    const dotEnvText = fs.readFileSync('.env', 'utf8');
+    const dotEnvText = fs.readFileSync(".env", "utf8");
     const lines = dotEnvText.match(/(.+?)=(.+)/gm);
     if (lines) {
-      lines.forEach((line) => {
+      lines.forEach(line => {
         const match = line.match(/(.+?)=(.+)/);
         if (match) {
           const [, key, value] = match;
@@ -14,7 +14,7 @@ function loadDotEnv() {
       });
     }
   } catch (err) {
-    console.error('error loading env', err);
+    console.error("error loading env", err);
   }
 }
 

@@ -7,9 +7,9 @@ import "solidity-coverage";
 import "./tasks/accounts";
 import "./tasks/clean";
 import "./tasks/deployers";
-import './test/utils/loadDotEnv';
+import "./test/utils/loadDotEnv";
 import { resolve } from "path";
-import { Wallet } from 'ethers'
+import { Wallet } from "ethers";
 import { config as dotenvConfig } from "dotenv";
 import { HardhatUserConfig } from "hardhat/config";
 import { NetworkUserConfig } from "hardhat/types";
@@ -49,8 +49,8 @@ function createTestnetConfig(network: keyof typeof chainIds): NetworkUserConfig 
     accounts: process.env.DEV_PKEY
       ? [process.env.DEV_PKEY]
       : {
-        mnemonic: process.env.DEV_MNEMONIC || DEFAULT_MNEMONIC,
-    },
+          mnemonic: process.env.DEV_MNEMONIC || DEFAULT_MNEMONIC,
+        },
     chainId: chainIds[network],
     url,
   };
