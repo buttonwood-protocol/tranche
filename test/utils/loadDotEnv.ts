@@ -6,8 +6,11 @@ function loadDotEnv() {
     const lines = dotEnvText.match(/(.+?)=(.+)/gm);
     if (lines) {
       lines.forEach((line) => {
-        const [, key, value] = line.match(/(.+?)=(.+)/)!;
-        process.env[key.trim()] = value.trim();
+        const match = line.match(/(.+?)=(.+)/);
+        if (match) {
+          const [, key, value] = match;
+          process.env[key.trim()] = value.trim();
+        }
       });
     }
   } catch (err) {
