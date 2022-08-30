@@ -38,7 +38,7 @@ if (!process.env.MNEMONIC) {
 
 let infuraApiKey: string;
 if (!process.env.INFURA_PROJECT_ID) {
-  infuraApiKey = 'test';
+  infuraApiKey = "test";
 } else {
   infuraApiKey = process.env.INFURA_PROJECT_ID;
 }
