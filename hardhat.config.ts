@@ -7,14 +7,17 @@ import "solidity-coverage";
 import "./tasks/accounts";
 import "./tasks/clean";
 import "./tasks/deployers";
-
+import "./tasks/deposit";
+import "./test/utils/loadDotEnv";
 import { resolve } from "path";
-
+import { Wallet } from "ethers";
 import { config as dotenvConfig } from "dotenv";
 import { HardhatUserConfig } from "hardhat/config";
 import { NetworkUserConfig } from "hardhat/types";
 
 dotenvConfig({ path: resolve(__dirname, "./.env") });
+
+const DEFAULT_MNEMONIC = Wallet.createRandom().mnemonic.phrase;
 
 const chainIds = {
   ganache: 1337,
@@ -35,21 +38,20 @@ if (!process.env.MNEMONIC) {
 }
 
 let infuraApiKey: string;
-if (!process.env.INFURA_API_KEY) {
+if (!process.env.INFURA_PROJECT_ID) {
   infuraApiKey = "test";
 } else {
-  infuraApiKey = process.env.INFURA_API_KEY;
+  infuraApiKey = process.env.INFURA_PROJECT_ID;
 }
 
 function createTestnetConfig(network: keyof typeof chainIds): NetworkUserConfig {
   const url: string = "https://" + network + ".infura.io/v3/" + infuraApiKey;
   return {
-    accounts: {
-      count: 10,
-      initialIndex: 0,
-      mnemonic,
-      path: "m/44'/60'/0'/0",
-    },
+    accounts: process.env.DEV_PKEY
+      ? [process.env.DEV_PKEY]
+      : {
+          mnemonic: process.env.DEV_MNEMONIC || DEFAULT_MNEMONIC,
+        },
     chainId: chainIds[network],
     url,
   };
