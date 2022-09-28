@@ -413,7 +413,7 @@ describe("Bond Controller", () => {
       await mockCollateralToken.mint(await user.getAddress(), amount);
       await mockCollateralToken.connect(user).approve(bond.address, amount);
 
-      await expect(bond.connect(user).deposit(100)).to.be.revertedWith("BondController: invalid initial amount");
+      await expect(bond.connect(user).deposit(100)).to.be.revertedWith("BondController: Expected minimum valid debt");
     });
 
     it("should fail to deposit if mature", async () => {
@@ -496,7 +496,7 @@ describe("Bond Controller", () => {
       const tx = await bond.connect(user).deposit(amount);
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("270693");
+      expect(gasUsed.toString()).to.equal("270914");
     });
   });
 
@@ -992,10 +992,43 @@ describe("Bond Controller", () => {
       return { bond, tranches, mockCollateralToken, user, admin };
     };
 
-    it("should successfully redeem an immature bond with all tranches", async () => {
+    it("should revert when trying to lower collateral below `MINIMUM_VALID_DEBT`", async () => {
+      const trancheValues = [200, 300, 500];
+      const { bond, mockCollateralToken, user } = await setup(trancheValues);
+
+      // Early redeeming below minimum valid debt (0.00000001)
+      await expect(
+        bond.connect(user).redeem([parse("199.9999999998"), parse("299.9999999997"), parse("499.9999999995")]),
+      ).to.be.revertedWith("BondController: Expected minimum valid debt");
+
+      expect(await mockCollateralToken.balanceOf(await user.getAddress())).to.equal(parse("0"));
+      expect(await bond.totalDebt()).to.equal(parse("1000"));
+    });
+
+    it("shouldn't revert when withdrawing collateral exactly to `MINIMUM_VALID_DEBT`", async () => {
       const trancheValues = [200, 300, 500];
       const { bond, tranches, mockCollateralToken, user } = await setup(trancheValues);
 
+      // Early redeeming until just 0.00000001 is left
+      await expect(bond.connect(user).redeem([parse("199.999999998"), parse("299.999999997"), parse("499.999999995")]))
+        .to.emit(bond, "Redeem")
+        .withArgs(await user.getAddress(), [parse("199.999999998"), parse("299.999999997"), parse("499.999999995")])
+        .to.emit(tranches[0], "Transfer")
+        .withArgs(await user.getAddress(), ZERO_ADDRESS, parse("199.999999998"))
+        .to.emit(tranches[1], "Transfer")
+        .withArgs(await user.getAddress(), ZERO_ADDRESS, parse("299.999999997"))
+        .to.emit(tranches[2], "Transfer")
+        .withArgs(await user.getAddress(), ZERO_ADDRESS, parse("499.999999995"));
+
+      expect(await mockCollateralToken.balanceOf(await user.getAddress())).to.equal(parse("999.99999999"));
+      expect(await bond.totalDebt()).to.equal(parse("0.00000001"));
+    });
+
+    it("shouldn't revert when withdrawing collateral exactly to 0", async () => {
+      const trancheValues = [200, 300, 500];
+      const { bond, tranches, mockCollateralToken, user } = await setup(trancheValues);
+
+      // Early redeeming entire amount
       await expect(bond.connect(user).redeem([parse("200"), parse("300"), parse("500")]))
         .to.emit(bond, "Redeem")
         .withArgs(await user.getAddress(), [parse("200"), parse("300"), parse("500")])
@@ -1007,6 +1040,25 @@ describe("Bond Controller", () => {
         .withArgs(await user.getAddress(), ZERO_ADDRESS, parse("500"));
 
       expect(await mockCollateralToken.balanceOf(await user.getAddress())).to.equal(parse("1000"));
+      expect(await bond.totalDebt()).to.equal(parse("0"));
+    });
+
+    it("should successfully redeem an immature bond with all tranches", async () => {
+      const trancheValues = [200, 300, 500];
+      const { bond, tranches, mockCollateralToken, user } = await setup(trancheValues);
+
+      // Early redeeming half of each tranche
+      await expect(bond.connect(user).redeem([parse("100"), parse("150"), parse("250")]))
+        .to.emit(bond, "Redeem")
+        .withArgs(await user.getAddress(), [parse("100"), parse("150"), parse("250")])
+        .to.emit(tranches[0], "Transfer")
+        .withArgs(await user.getAddress(), ZERO_ADDRESS, parse("100"))
+        .to.emit(tranches[1], "Transfer")
+        .withArgs(await user.getAddress(), ZERO_ADDRESS, parse("150"))
+        .to.emit(tranches[2], "Transfer")
+        .withArgs(await user.getAddress(), ZERO_ADDRESS, parse("250"));
+
+      expect(await mockCollateralToken.balanceOf(await user.getAddress())).to.equal(parse("500"));
     });
 
     it("should successfully redeem an immature bond after positive rebase", async () => {
@@ -1016,37 +1068,41 @@ describe("Bond Controller", () => {
       // 2x rebase
       await mockCollateralToken.rebase(20000);
 
-      await expect(bond.connect(user).redeem([parse("200"), parse("300"), parse("500")]))
+      // Early redeeming half of each tranche
+      await expect(bond.connect(user).redeem([parse("100"), parse("150"), parse("250")]))
         .to.emit(bond, "Redeem")
-        .withArgs(await user.getAddress(), [parse("200"), parse("300"), parse("500")])
+        .withArgs(await user.getAddress(), [parse("100"), parse("150"), parse("250")])
         .to.emit(tranches[0], "Transfer")
-        .withArgs(await user.getAddress(), ZERO_ADDRESS, parse("200"))
+        .withArgs(await user.getAddress(), ZERO_ADDRESS, parse("100"))
         .to.emit(tranches[1], "Transfer")
-        .withArgs(await user.getAddress(), ZERO_ADDRESS, parse("300"))
+        .withArgs(await user.getAddress(), ZERO_ADDRESS, parse("150"))
         .to.emit(tranches[2], "Transfer")
-        .withArgs(await user.getAddress(), ZERO_ADDRESS, parse("500"));
+        .withArgs(await user.getAddress(), ZERO_ADDRESS, parse("250"));
 
-      expect(await mockCollateralToken.balanceOf(await user.getAddress())).to.equal(parse("2000"));
+      // 2x what was deposited
+      expect(await mockCollateralToken.balanceOf(await user.getAddress())).to.equal(parse("1000"));
     });
 
     it("should successfully redeem an immature bond after negative rebase", async () => {
       const trancheValues = [200, 300, 500];
       const { bond, tranches, mockCollateralToken, user } = await setup(trancheValues);
 
-      // 2x rebase
+      // 0.5x rebase
       await mockCollateralToken.rebase(5000);
 
-      await expect(bond.connect(user).redeem([parse("200"), parse("300"), parse("500")]))
+      // Early redeeming half of each tranche
+      await expect(bond.connect(user).redeem([parse("100"), parse("150"), parse("250")]))
         .to.emit(bond, "Redeem")
-        .withArgs(await user.getAddress(), [parse("200"), parse("300"), parse("500")])
+        .withArgs(await user.getAddress(), [parse("100"), parse("150"), parse("250")])
         .to.emit(tranches[0], "Transfer")
-        .withArgs(await user.getAddress(), ZERO_ADDRESS, parse("200"))
+        .withArgs(await user.getAddress(), ZERO_ADDRESS, parse("100"))
         .to.emit(tranches[1], "Transfer")
-        .withArgs(await user.getAddress(), ZERO_ADDRESS, parse("300"))
+        .withArgs(await user.getAddress(), ZERO_ADDRESS, parse("150"))
         .to.emit(tranches[2], "Transfer")
-        .withArgs(await user.getAddress(), ZERO_ADDRESS, parse("500"));
+        .withArgs(await user.getAddress(), ZERO_ADDRESS, parse("250"));
 
-      expect(await mockCollateralToken.balanceOf(await user.getAddress())).to.equal(parse("500"));
+      // .25x what was deposited
+      expect(await mockCollateralToken.balanceOf(await user.getAddress())).to.equal(parse("250"));
     });
 
     it("should fail to redeem a mature bond", async () => {
@@ -1078,8 +1134,15 @@ describe("Bond Controller", () => {
 
     it("should fail to redeem more than owned", async () => {
       const trancheValues = [200, 300, 500];
-      const { bond, user } = await setup(trancheValues);
+      const { bond, user, admin, mockCollateralToken } = await setup(trancheValues);
 
+      // Depositing a lot extra from another user to avoid triggering withdraw limit error
+      const amount = parse("10000");
+      await mockCollateralToken.mint(await admin.getAddress(), amount);
+      await mockCollateralToken.connect(admin).approve(bond.address, amount);
+      await bond.connect(admin).deposit(amount);
+
+      // User trying to withdraw 2x what they own
       await expect(bond.connect(user).redeem([parse("400"), parse("600"), parse("1000")])).to.be.revertedWith(
         "ERC20: burn amount exceeds balance",
       );
@@ -1089,11 +1152,12 @@ describe("Bond Controller", () => {
       const trancheValues = [200, 300, 500];
       const { bond, user } = await setup(trancheValues);
 
-      const tx = await bond.connect(user).redeem([parse("200"), parse("300"), parse("500")]);
+      // Early redeeming half of each tranche
+      const tx = await bond.connect(user).redeem([parse("100"), parse("150"), parse("250")]);
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("119175");
+      expect(gasUsed.toString()).to.equal("149243");
     });
   });
 });
