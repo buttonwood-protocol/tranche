@@ -46,4 +46,8 @@ contract MockERC20CustomDecimals is Context, ERC20Burnable {
     function decimals() public view override returns (uint8) {
         return _decimals;
     }
+
+    function scaledBalanceOf(address who) external view returns (uint256) {
+        return super.balanceOf(who);
+    }
 }

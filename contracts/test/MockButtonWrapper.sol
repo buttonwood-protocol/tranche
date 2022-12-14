@@ -58,4 +58,8 @@ contract MockButtonWrapper is Context, ERC20Burnable, IButtonWrapper {
     function underlying() external view override returns (address) {
         return address(_underlying);
     }
+
+    function scaledBalanceOf(address who) external view returns (uint256) {
+        return super.balanceOf(who);
+    }
 }

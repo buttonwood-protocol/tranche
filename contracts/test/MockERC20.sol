@@ -35,4 +35,8 @@ contract MockERC20 is Context, ERC20Burnable {
         // multiply underlying balance to accommodate current rebase multiplier
         return (super.balanceOf(who) * multiplier) / MULTIPLIER_GRANULARITY;
     }
+
+    function scaledBalanceOf(address who) external view returns (uint256) {
+        return super.balanceOf(who);
+    }
 }

@@ -485,6 +485,66 @@ describe("Bond Controller", () => {
       await expect(bond.connect(user).deposit(amount)).to.not.be.reverted;
     });
 
+    it("should successfully mint correct amount of tranche tokens after extraneous transfer", async () => {
+      const trancheValues = [200, 300, 500];
+      const {
+        bond,
+        tranches,
+        mockCollateralToken,
+        admin: userA,
+        user: userB,
+        other: userC,
+      } = await loadFixture(getFixture(trancheValues));
+
+      const amount1k = parse("1000");
+
+      // Mint 1000 collateral to userA and approve it for bond
+      await mockCollateralToken.mint(await userA.getAddress(), amount1k);
+      await mockCollateralToken.connect(userA).approve(bond.address, amount1k);
+
+      // Mint 1000 collateral to userB and approve it for bond
+      await mockCollateralToken.mint(await userB.getAddress(), amount1k);
+      await mockCollateralToken.connect(userB).approve(bond.address, amount1k);
+
+      // Mint 1000 collateral to userC and approve it for bond
+      await mockCollateralToken.mint(await userC.getAddress(), amount1k);
+      await mockCollateralToken.connect(userC).approve(bond.address, amount1k);
+
+      // UserA deposits 1000 collateral
+      await bond.connect(userA).deposit(amount1k);
+      // A-token supply is 200, UserA has balance of 200 As
+      expect(await tranches[0].totalSupply()).to.equal(parse("200"));
+      expect(await tranches[0].balanceOf(await userA.getAddress())).to.equal(parse("200"));
+      // B-token supply is 300, UserA has balance of 300 Bs
+      expect(await tranches[1].totalSupply()).to.equal(parse("300"));
+      expect(await tranches[1].balanceOf(await userA.getAddress())).to.equal(parse("300"));
+      // Z-token supply is 500, UserA has balance of 500 Zs
+      expect(await tranches[2].totalSupply()).to.equal(parse("500"));
+      expect(await tranches[2].balanceOf(await userA.getAddress())).to.equal(parse("500"));
+
+      // UserB sends 1000 collateral to the bond without depositing
+      await mockCollateralToken.connect(userB).transfer(bond.address, amount1k);
+
+      // UserC deposits 1000 collateral
+      await bond.connect(userC).deposit(amount1k);
+      // A-token supply is 400, UserC has balance of 200 As
+      expect(await tranches[0].totalSupply()).to.equal(parse("400"));
+      expect(await tranches[0].balanceOf(await userA.getAddress())).to.equal(parse("200"));
+      // B-token supply is 600, UserC has balance of 300 Bs
+      expect(await tranches[1].totalSupply()).to.equal(parse("600"));
+      expect(await tranches[1].balanceOf(await userA.getAddress())).to.equal(parse("300"));
+      // Z-token supply is 1000, UserC has balance of 500 Zs
+      expect(await tranches[2].totalSupply()).to.equal(parse("1000"));
+      expect(await tranches[2].balanceOf(await userA.getAddress())).to.equal(parse("500"));
+
+      // Validating tokens have been transferred
+      expect(await mockCollateralToken.balanceOf(await userA.getAddress())).to.equal(0);
+      expect(await mockCollateralToken.balanceOf(await userB.getAddress())).to.equal(0);
+      expect(await mockCollateralToken.balanceOf(await userC.getAddress())).to.equal(0);
+      expect(await mockCollateralToken.balanceOf(bond.address)).to.equal(amount1k.mul(3));
+      expect(await bond.totalDebt()).to.equal(amount1k.mul(2));
+    });
+
     it("gas [ @skip-on-coverage ]", async () => {
       const trancheValues = [200, 300, 500];
       const { bond, mockCollateralToken, user } = await loadFixture(async () => await setupTestContext(trancheValues));
@@ -496,7 +556,7 @@ describe("Bond Controller", () => {
       const tx = await bond.connect(user).deposit(amount);
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("270914");
+      expect(gasUsed.toString()).to.equal("295565");
     });
   });
 
@@ -608,7 +668,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("226183");
+      expect(gasUsed.toString()).to.equal("226271");
     });
   });
 
@@ -1157,7 +1217,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("149243");
+      expect(gasUsed.toString()).to.equal("156715");
     });
   });
 });
