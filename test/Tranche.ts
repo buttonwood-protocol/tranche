@@ -4,18 +4,18 @@ import { BigNumber, Signer } from "ethers";
 import { deploy } from "./utils/contracts";
 const { loadFixture } = waffle;
 
-import { MockERC20, MockERC20CustomDecimals, Tranche, TrancheFactory } from "../typechain";
+import { MockRebasingERC20, Tranche, TrancheFactory } from "../typechain";
 
 interface TestContext {
   tranche: Tranche;
   trancheFactory: TrancheFactory;
-  mockCollateralToken: MockERC20;
+  mockCollateralToken: MockRebasingERC20;
   user: Signer;
   other: Signer;
   signers: Signer[];
 }
 
-describe("Tranche Token", () => {
+describe("Tranche", () => {
   /**
    * Sets up a test context, deploying new contracts and returning them for use in a test
    */
@@ -25,8 +25,8 @@ describe("Tranche Token", () => {
     const trancheImplementation = <Tranche>await deploy("Tranche", signers[0], []);
     const trancheFactory = <TrancheFactory>await deploy("TrancheFactory", signers[0], [trancheImplementation.address]);
 
-    const mockCollateralToken = <MockERC20CustomDecimals>(
-      await deploy("MockERC20CustomDecimals", signers[0], ["Mock ERC20", "MOCK", collateralTokenDecimals])
+    const mockCollateralToken = <MockRebasingERC20>(
+      await deploy("MockRebasingERC20", signers[0], ["Mock ERC20", "MOCK", collateralTokenDecimals])
     );
     const tx = await trancheFactory
       .connect(signers[0])
@@ -241,10 +241,10 @@ describe("Tranche Token", () => {
       const { mockCollateralToken, tranche, user, other } = await loadFixture(fixture);
       const amount = hre.ethers.constants.MaxUint256;
       await tranche.connect(user).mint(await other.getAddress(), amount);
-      await mockCollateralToken.mint(tranche.address, amount);
+      await mockCollateralToken.mint(tranche.address, amount.div(10000));
 
       await expect(tranche.connect(user).redeem(await other.getAddress(), await other.getAddress(), amount)).to.be
-        .reverted;
+        .reverted
     });
   });
 });

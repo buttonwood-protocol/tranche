@@ -1556,6 +1556,12 @@ amdefine@>=0.0.4:
   resolved "https://registry.yarnpkg.com/amdefine/-/amdefine-1.0.1.tgz#4a5282ac164729e93619bcfd3ad151f817ce91f5"
   integrity sha1-SlKCrBZHKek2Gbz9OtFR+BfOkfU=
 
+"ampleforth-contracts@https://github.com/ampleforth/ampleforth-contracts#v1.2.1":
+  version "0.0.1"
+  resolved "https://github.com/ampleforth/ampleforth-contracts#f65dc30e4aae0624345a58d37f5c91f385850166"
+  dependencies:
+    openzeppelin-contracts-4.4.1 "https://github.com/OpenZeppelin/openzeppelin-contracts.git#4.4.1"
+
 ansi-colors@3.2.3:
   version "3.2.3"
   resolved "https://registry.yarnpkg.com/ansi-colors/-/ansi-colors-3.2.3.tgz#57d35b8686e851e2cc04c403f1c00203976a1813"
@@ -7855,6 +7861,10 @@ opencollective-postinstall@^2.0.2:
   version "2.0.3"
   resolved "https://registry.yarnpkg.com/opencollective-postinstall/-/opencollective-postinstall-2.0.3.tgz#7a0fff978f6dbfa4d006238fbac98ed4198c3259"
   integrity sha512-8AV/sCtuzUeTo8gQK5qDZzARrulB3egtLzFgteqB2tcT4Mw7B8Kt7JcDHmltjz6FOAHsvTevk70gZEbhM4ZS9Q==
+
+"openzeppelin-contracts-4.4.1@https://github.com/OpenZeppelin/openzeppelin-contracts.git#4.4.1":
+  version "4.4.1"
+  resolved "https://github.com/OpenZeppelin/openzeppelin-contracts.git#6bd6b76d1156e20e45d1016f355d154141c7e5b9"
 
 optionator@^0.8.1, optionator@^0.8.2:
   version "0.8.3"
