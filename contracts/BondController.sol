@@ -38,7 +38,7 @@ contract BondController is IBondController, OwnableUpgradeable {
     uint256 public override maturityDate;
     bool public override isMature;
     uint256 public override totalDebt;
-    uint256 public recordedScaledCollateralBalance = 0;
+    uint256 public lastScaledCollateralBalance;
 
     // Maximum amount of collateral that can be deposited into this bond
     // Used as a guardrail for initial launch.
@@ -108,14 +108,14 @@ contract BondController is IBondController, OwnableUpgradeable {
         require(!isMature, "BondController: Already mature");
 
         uint256 scaledCollateralBalance = IRebasingERC20(collateralToken).scaledBalanceOf(address(this));
-        uint256 scaledExtraneousCollateral = scaledCollateralBalance - recordedScaledCollateralBalance;
+        uint256 scaledExtraneousCollateral = scaledCollateralBalance - lastScaledCollateralBalance;
 
         uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(this));
-        uint256 trueCollateralBalance = (scaledCollateralBalance > 0)
-            ? (collateralBalance * recordedScaledCollateralBalance) / scaledCollateralBalance
+        uint256 virtualCollateralBalance = (scaledCollateralBalance > 0)
+            ? (collateralBalance * lastScaledCollateralBalance) / scaledCollateralBalance
             : 0;
 
-        require(depositLimit == 0 || trueCollateralBalance + amount <= depositLimit, "BondController: Deposit limit");
+        require(depositLimit == 0 || virtualCollateralBalance + amount <= depositLimit, "BondController: Deposit limit");
 
         TrancheData[] memory _tranches = tranches;
 
@@ -128,8 +128,8 @@ contract BondController is IBondController, OwnableUpgradeable {
             // if there is any collateral, we should scale by the debt:collateral ratio
             // note: if totalDebt == 0 then we're minting for the first time
             // so shouldn't scale even if there is some collateral mistakenly sent in
-            if (trueCollateralBalance > 0 && _totalDebt > 0) {
-                trancheValue = (trancheValue * _totalDebt) / trueCollateralBalance;
+            if (virtualCollateralBalance > 0 && _totalDebt > 0) {
+                trancheValue = (trancheValue * _totalDebt) / virtualCollateralBalance;
             }
             newDebt += trancheValue;
             trancheValues[i] = trancheValue;
@@ -139,7 +139,7 @@ contract BondController is IBondController, OwnableUpgradeable {
         TransferHelper.safeTransferFrom(collateralToken, _msgSender(), address(this), amount);
 
         scaledCollateralBalance = IRebasingERC20(collateralToken).scaledBalanceOf(address(this));
-        recordedScaledCollateralBalance = scaledCollateralBalance - scaledExtraneousCollateral;
+        lastScaledCollateralBalance = scaledCollateralBalance - scaledExtraneousCollateral;
 
         // saving feeBps in memory to minimize sloads
         uint256 _feeBps = feeBps;
@@ -235,8 +235,8 @@ contract BondController is IBondController, OwnableUpgradeable {
         totalDebt -= total;
         TransferHelper.safeTransfer(collateralToken, _msgSender(), returnAmount);
         uint256 scaledCollateralBalancePost = IRebasingERC20(collateralToken).scaledBalanceOf(address(this));
-        recordedScaledCollateralBalance =
-            recordedScaledCollateralBalance -
+        lastScaledCollateralBalance =
+            lastScaledCollateralBalance -
             (scaledCollateralBalancePre - scaledCollateralBalancePost);
         emit Redeem(_msgSender(), amounts);
 
