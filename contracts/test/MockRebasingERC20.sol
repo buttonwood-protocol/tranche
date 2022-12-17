@@ -14,12 +14,16 @@ contract MockRebasingERC20 is Context, IRebasingERC20 {
 
     string private _name;
     string private _symbol;
-    uint8 _decimals;
+    uint8 private _decimals;
 
     uint256 internal constant MULTIPLIER_GRANULARITY = 10000;
     uint256 public multiplier = 10000;
 
-    constructor(string memory name_, string memory symbol_, uint8 decimals_) {
+    constructor(
+        string memory name_,
+        string memory symbol_,
+        uint8 decimals_
+    ) {
         _name = name_;
         _symbol = symbol_;
         _decimals = decimals_;
@@ -171,9 +175,9 @@ contract MockRebasingERC20 is Context, IRebasingERC20 {
         address owner = _msgSender();
         uint256 currentAllowance = _allowances[owner][spender];
         require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
-    unchecked {
-        _approve(owner, spender, currentAllowance - subtractedValue);
-    }
+        unchecked {
+            _approve(owner, spender, currentAllowance - subtractedValue);
+        }
 
         return true;
     }
@@ -199,15 +203,15 @@ contract MockRebasingERC20 is Context, IRebasingERC20 {
     ) internal virtual {
         require(from != address(0), "ERC20: transfer from the zero address");
         require(to != address(0), "ERC20: transfer to the zero address");
-        uint256 underlyingAmount =  (amount * MULTIPLIER_GRANULARITY) / multiplier;
+        uint256 underlyingAmount = (amount * MULTIPLIER_GRANULARITY) / multiplier;
 
         _beforeTokenTransfer(from, to, amount);
 
         uint256 fromBalance = _underlyingBalances[from];
         require(fromBalance >= underlyingAmount, "ERC20: transfer amount exceeds balance");
-    unchecked {
-        _underlyingBalances[from] = fromBalance - underlyingAmount;
-    }
+        unchecked {
+            _underlyingBalances[from] = fromBalance - underlyingAmount;
+        }
         _underlyingBalances[to] += underlyingAmount;
 
         emit Transfer(from, to, amount);
@@ -226,7 +230,7 @@ contract MockRebasingERC20 is Context, IRebasingERC20 {
      */
     function _mint(address account, uint256 amount) internal virtual {
         require(account != address(0), "ERC20: mint to the zero address");
-        uint256 underlyingAmount =  (amount * MULTIPLIER_GRANULARITY) / multiplier;
+        uint256 underlyingAmount = (amount * MULTIPLIER_GRANULARITY) / multiplier;
 
         _beforeTokenTransfer(address(0), account, amount);
 
@@ -250,15 +254,15 @@ contract MockRebasingERC20 is Context, IRebasingERC20 {
      */
     function _burn(address account, uint256 amount) internal virtual {
         require(account != address(0), "ERC20: burn from the zero address");
-        uint256 underlyingAmount =  (amount * MULTIPLIER_GRANULARITY) / multiplier;
+        uint256 underlyingAmount = (amount * MULTIPLIER_GRANULARITY) / multiplier;
 
         _beforeTokenTransfer(account, address(0), amount);
 
         uint256 accountBalance = _underlyingBalances[account];
         require(accountBalance >= underlyingAmount, "ERC20: burn amount exceeds balance");
-    unchecked {
-        _underlyingBalances[account] = accountBalance - underlyingAmount;
-    }
+        unchecked {
+            _underlyingBalances[account] = accountBalance - underlyingAmount;
+        }
         _totalUnderlyingSupply -= underlyingAmount;
 
         emit Transfer(account, address(0), amount);
@@ -307,9 +311,9 @@ contract MockRebasingERC20 is Context, IRebasingERC20 {
         uint256 currentAllowance = allowance(owner, spender);
         if (currentAllowance != type(uint256).max) {
             require(currentAllowance >= amount, "ERC20: insufficient allowance");
-        unchecked {
-            _approve(owner, spender, currentAllowance - amount);
-        }
+            unchecked {
+                _approve(owner, spender, currentAllowance - amount);
+            }
         }
     }
 
@@ -360,37 +364,37 @@ contract MockRebasingERC20 is Context, IRebasingERC20 {
     }
 
     /**
-    * @dev See {IRebasingERC20-scaledBalanceOf}.
-    */
-    function scaledBalanceOf(address who) override external view returns (uint256) {
+     * @dev See {IRebasingERC20-scaledBalanceOf}.
+     */
+    function scaledBalanceOf(address who) external view override returns (uint256) {
         return (balanceOf(who) * MULTIPLIER_GRANULARITY) / multiplier;
     }
 
     /**
-    * @dev See {IRebasingERC20-scaledTotalSupply}.
-    */
-    function scaledTotalSupply() override external view returns (uint256) {
+     * @dev See {IRebasingERC20-scaledTotalSupply}.
+     */
+    function scaledTotalSupply() external view override returns (uint256) {
         return (totalSupply() * MULTIPLIER_GRANULARITY) / multiplier;
     }
 
     /**
-    * @dev See {IRebasingERC20-transferAll}.
-    */
-    function transferAll(address to) override external returns (bool) {
+     * @dev See {IRebasingERC20-transferAll}.
+     */
+    function transferAll(address to) external override returns (bool) {
         return transfer(to, balanceOf(msg.sender));
     }
 
     /**
-    * @dev See {IRebasingERC20-transferAllFrom}.
-    */
-    function transferAllFrom(address from, address to) override external returns (bool) {
+     * @dev See {IRebasingERC20-transferAllFrom}.
+     */
+    function transferAllFrom(address from, address to) external override returns (bool) {
         return transferFrom(from, to, allowance(from, msg.sender));
     }
 
     /**
      * @dev See {IRebasingERC20-rebase}.
      */
-    function rebase() override external {
+    function rebase() external override {
         return;
     }
 

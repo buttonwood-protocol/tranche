@@ -35,7 +35,7 @@ describe("Tranche", () => {
 
     let tranche = undefined;
     if (receipt && receipt.events) {
-      const trancheCreateEvent = receipt.events.find((event) => event.event === "TrancheCreated");
+      const trancheCreateEvent = receipt.events.find(event => event.event === "TrancheCreated");
       if (trancheCreateEvent && trancheCreateEvent.args) {
         tranche = <Tranche>await hre.ethers.getContractAt("Tranche", trancheCreateEvent.args.newTrancheAddress);
       }
@@ -248,7 +248,7 @@ describe("Tranche", () => {
       await mockCollateralToken.mint(tranche.address, amount.div(10000));
 
       await expect(tranche.connect(user).redeem(await other.getAddress(), await other.getAddress(), amount)).to.be
-        .reverted
+        .reverted;
     });
   });
 });

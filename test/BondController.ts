@@ -1,28 +1,21 @@
 import { expect } from "chai";
 import hre, { waffle } from "hardhat";
-import {BigNumber, BigNumberish, Signer} from "ethers";
+import { BigNumber, BigNumberish, Signer } from "ethers";
 import * as _ from "lodash";
 import { Fixture } from "ethereum-waffle";
 import { deploy } from "./utils/contracts";
 import { BlockchainTime } from "./utils/time";
-import {mint, ZERO_ADDRESS} from "./utils/erc20";
+import { ZERO_ADDRESS } from "./utils/erc20";
 const { loadFixture } = waffle;
 
-import {
-  BondController,
-  BondFactory,
-  MockRebasingERC20,
-  Tranche,
-  TrancheFactory,
-  UFragments
-} from "../typechain";
+import { BondController, BondFactory, MockRebasingERC20, Tranche, TrancheFactory, UFragments } from "../typechain";
 const parse = hre.ethers.utils.parseEther;
 const ampleParse = (value: string) => hre.ethers.utils.parseUnits(value, 9);
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 const expectEqWithEpsilon = (a: BigNumberish, b: BigNumberish, epsilon: BigNumberish) => {
   expect(BigNumber.from(a).sub(b).abs()).to.be.lte(epsilon);
-}
+};
 
 interface TestContext {
   bond: BondController;
@@ -186,7 +179,9 @@ describe("Bond Controller", () => {
         await deploy("BondFactory", signers[0], [bondImplementation.address, trancheFactory.address])
       );
 
-      const mockCollateralToken = <MockRebasingERC20>await deploy("MockRebasingERC20", signers[0], ["Mock ERC20", "MOCK", 18]);
+      const mockCollateralToken = <MockRebasingERC20>(
+        await deploy("MockRebasingERC20", signers[0], ["Mock ERC20", "MOCK", 18])
+      );
       await expect(
         bondFactory
           .connect(signers[0])
@@ -207,7 +202,9 @@ describe("Bond Controller", () => {
         await deploy("BondFactory", signers[0], [bondImplementation.address, trancheFactory.address])
       );
 
-      const mockCollateralToken = <MockRebasingERC20>await deploy("MockRebasingERC20", signers[0], ["Mock ERC20", "MOCK", 9]);
+      const mockCollateralToken = <MockRebasingERC20>(
+        await deploy("MockRebasingERC20", signers[0], ["Mock ERC20", "MOCK", 9])
+      );
       await expect(
         bondFactory.connect(signers[0]).createBond(mockCollateralToken.address, [], await time.secondsFromNow(10000)),
       ).to.be.revertedWith("BondController: Invalid tranche ratios");
@@ -244,7 +241,9 @@ describe("Bond Controller", () => {
         await deploy("BondFactory", signers[0], [bondImplementation.address, trancheFactory.address])
       );
 
-      const mockCollateralToken = <MockRebasingERC20>await deploy("MockRebasingERC20", signers[0], ["Mock ERC20", "MOCK", 9]);
+      const mockCollateralToken = <MockRebasingERC20>(
+        await deploy("MockRebasingERC20", signers[0], ["Mock ERC20", "MOCK", 9])
+      );
       const maturityDate = await time.secondsFromNow(10000);
       const tx = await bondFactory
         .connect(signers[0])
@@ -411,7 +410,7 @@ describe("Bond Controller", () => {
       expect(await mockCollateralToken.balanceOf(await other.getAddress())).to.equal(parse("500"));
 
       // Other deposits entire balance (half of original minting amount)
-      const halfAmount = parse("500")
+      const halfAmount = parse("500");
       await expect(bond.connect(other).deposit(halfAmount))
         .to.emit(mockCollateralToken, "Transfer")
         .withArgs(await other.getAddress(), bond.address, halfAmount)
@@ -1117,7 +1116,6 @@ describe("Bond Controller", () => {
       // Validating bond has correct collateral and admin has all the extraneous collateral
       expect(await mockCollateralToken.balanceOf(bond.address)).to.equal(0);
       expect(await mockCollateralToken.balanceOf(await admin.getAddress())).to.equal(extraneousAmount);
-
     });
 
     it("should redeemMature correct amounts and leave pre-mature extraneous collateral for admin", async () => {
@@ -1396,7 +1394,7 @@ describe("Bond Controller", () => {
       expect(await bond.totalDebt()).to.equal(amount1k);
 
       // UserA early-redeems all of their A, B, and Z tokens
-      await bond.connect(userA).redeem([parse("200"), parse("300"), parse("500")])
+      await bond.connect(userA).redeem([parse("200"), parse("300"), parse("500")]);
 
       // UserA gets all of their 1000 collateral back
       expect(await mockCollateralToken.balanceOf(await userA.getAddress())).to.equal(amount1k);
@@ -1470,9 +1468,7 @@ describe("Bond Controller: Ampl Stress-Testing", () => {
         .createBondWithDepositLimit(ampl.address, tranches, maturityDate, depositLimit);
       receipt = await tx.wait();
     } else {
-      const tx = await bondFactory
-        .connect(admin)
-        .createBond(ampl.address, tranches, await time.secondsFromNow(10000));
+      const tx = await bondFactory.connect(admin).createBond(ampl.address, tranches, await time.secondsFromNow(10000));
       receipt = await tx.wait();
     }
 
@@ -1522,7 +1518,7 @@ describe("Bond Controller: Ampl Stress-Testing", () => {
       signers: signers.slice(3),
       maturityDate,
       rebase,
-      mint
+      mint,
     };
   };
 
@@ -1539,7 +1535,9 @@ describe("Bond Controller: Ampl Stress-Testing", () => {
 
   it("should successfully deposit collateral and mint tranche tokens", async () => {
     const trancheValues = [200, 300, 500];
-    const { bond, tranches, ampl, userA, userB, userC, admin, mint, rebase } = await loadFixture(getFixture(trancheValues));
+    const { bond, tranches, ampl, userA, userB, userC, admin, mint, rebase } = await loadFixture(
+      getFixture(trancheValues),
+    );
 
     // Mint 1234 AMPL to userA
     await mint(await userA.getAddress(), ampleParse("1234"));
@@ -1552,7 +1550,6 @@ describe("Bond Controller: Ampl Stress-Testing", () => {
     expect(await ampl.balanceOf(await userC.getAddress())).to.equal(ampleParse("5678"));
     expect(await ampl.balanceOf(await admin.getAddress())).to.equal(ampleParse("0"));
     expect(await ampl.balanceOf(bond.address)).to.equal(ampleParse("0"));
-
 
     // userA deposits entire AMPL balance
     await ampl.connect(userA).approve(bond.address, await ampl.connect(userA).balanceOf(await userA.getAddress()));
@@ -1596,14 +1593,12 @@ describe("Bond Controller: Ampl Stress-Testing", () => {
     for (let i = 0; i < tranches.length; i++) {
       const tranche = tranches[i];
       const trancheValue = await tranche.connect(userC).balanceOf(await userC.getAddress());
-      await expect(bond.connect(userC).redeemMature(tranche.address, trancheValue))
+      await expect(bond.connect(userC).redeemMature(tranche.address, trancheValue));
     }
 
     // admin withdraws all extraneous collateral from bond
     await bond.connect(admin).withdrawExtraneousCollateral();
-    const adminAmount = ampleParse("9012.3456").mul(2)
-      .add(ampleParse("7890.1234"))
-      .add(ampleParse("5678.9123"));
+    const adminAmount = ampleParse("9012.3456").mul(2).add(ampleParse("7890.1234")).add(ampleParse("5678.9123"));
 
     // Balance Checks, userA: 1234, userB: ??, userC: 5678, admin: >0, bond: 0
     // Rounded precision to be expected
@@ -1613,6 +1608,4 @@ describe("Bond Controller: Ampl Stress-Testing", () => {
     expect(await ampl.balanceOf(await admin.getAddress())).to.equal(adminAmount);
     expect(await ampl.balanceOf(bond.address)).to.equal(ampleParse("0"));
   });
-
 });
-

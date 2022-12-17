@@ -40,7 +40,9 @@ describe("Uniswap V2 Loan Router", () => {
     const mockUniV2Router = <MockUniV2Router>await deploy("MockUniV2Router", signers[0], []);
     const router = <UniV2LoanRouter>await deploy("UniV2LoanRouter", signers[0], [mockUniV2Router.address]);
 
-    const mockCollateralToken = <MockRebasingERC20>await deploy("MockRebasingERC20", signers[0], ["Mock Rebasing ERC20", "MOCK-REBASE", 18]);
+    const mockCollateralToken = <MockRebasingERC20>(
+      await deploy("MockRebasingERC20", signers[0], ["Mock Rebasing ERC20", "MOCK-REBASE", 18])
+    );
     const mockCashToken = <MockERC20>await deploy("MockERC20", signers[0], ["Mock ERC20", "MOCK"]);
 
     const trancheImplementation = <Tranche>await deploy("Tranche", admin, []);
