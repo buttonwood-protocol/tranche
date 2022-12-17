@@ -251,7 +251,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("867197");
+      expect(gasUsed.toString()).to.equal("867185");
     });
   });
 
@@ -1421,6 +1421,91 @@ describe("Bond Controller", () => {
       const gasUsed = receipt.gasUsed;
       expect(gasUsed.toString()).to.equal("158284");
     });
+  });
+
+  describe("Extraneous Collateral", function () {
+    it("Admin should withdraw nothing when there's no extraneous collateral", async () => {
+      const trancheValues = [200, 300, 500];
+      const {bond, mockCollateralToken, user, admin} = await loadFixture(getFixture(trancheValues));
+
+      // User mints 1000 collateral and deposits it
+      const amount = parse("1000");
+      await mockCollateralToken.mint(await user.getAddress(), amount);
+      await mockCollateralToken.connect(user).approve(bond.address, amount);
+      await expect(bond.connect(user).deposit(amount))
+
+      // Admin attempts to withdraw any extraneous collateral
+      await expect(bond.connect(admin).withdrawExtraneousCollateral());
+
+      // Admin has no collateral
+      expect(await mockCollateralToken.balanceOf(await admin.getAddress())).to.equal(0);
+    });
+
+    it("Admin should all extraneous collateral when there's no extraneous collateral", async () => {
+      const trancheValues = [200, 300, 500];
+      const {bond, mockCollateralToken, user, other, admin} = await loadFixture(getFixture(trancheValues));
+
+      // User mints 4321 collateral and deposits it
+      const amount = parse("4321");
+      await mockCollateralToken.mint(await user.getAddress(), amount);
+      await mockCollateralToken.connect(user).approve(bond.address, amount);
+      await expect(bond.connect(user).deposit(amount))
+
+      // other mints 1000 collateral and extraneously sends it to the bond
+      const extraneousAmount = parse("5678901234");
+      await mockCollateralToken.mint(await other.getAddress(), extraneousAmount);
+      await mockCollateralToken.connect(other).transfer(bond.address, extraneousAmount);
+
+      // Balance Check - user: 0, other: 0, bond: 5678905555
+      expect(await mockCollateralToken.balanceOf(await user.getAddress())).to.equal(0);
+      expect(await mockCollateralToken.balanceOf(await other.getAddress())).to.equal(0);
+      expect(await mockCollateralToken.balanceOf(bond.address)).to.equal(amount.add(extraneousAmount));
+
+      // Admin attempts to withdraw any extraneous collateral
+      await expect(bond.connect(admin).withdrawExtraneousCollateral());
+
+      // Admin has all extraneous collateral transferred from other
+      expect(await mockCollateralToken.balanceOf(await admin.getAddress())).to.equal(extraneousAmount);
+    });
+  });
+
+  it("Virtual balance matches collateral balance when there are no extraneous deposits", async () => {
+    const trancheValues = [200, 300, 500];
+    const {bond, mockCollateralToken, user} = await loadFixture(getFixture(trancheValues));
+
+    // User mints 1000 collateral and deposits it
+    const amount = parse("1000");
+    await mockCollateralToken.mint(await user.getAddress(), amount);
+    await mockCollateralToken.connect(user).approve(bond.address, amount);
+    await expect(bond.connect(user).deposit(amount))
+
+    // Virtual balance should match collateral balance
+    const virtualCollateralBalance = await bond.virtualCollateralBalance();
+    const collateralBalance = await mockCollateralToken.balanceOf(bond.address);
+    expect(virtualCollateralBalance).to.equal(collateralBalance);
+  });
+
+  it("Virtual balance equals deposit amounts", async () => {
+    const trancheValues = [200, 300, 500];
+    const {bond, mockCollateralToken, user, other} = await loadFixture(getFixture(trancheValues));
+
+    // User mints 4321 collateral and deposits it
+    const amount = parse("7799");
+    await mockCollateralToken.mint(await user.getAddress(), amount);
+    await mockCollateralToken.connect(user).approve(bond.address, amount);
+    await expect(bond.connect(user).deposit(amount))
+
+    // other mints 1000 collateral and extraneously sends it to the bond
+    const extraneousAmount = parse("9876");
+    await mockCollateralToken.mint(await other.getAddress(), extraneousAmount);
+    await mockCollateralToken.connect(other).transfer(bond.address, extraneousAmount);
+
+    // Virtual balance should match deposited amounts and collateral balance minus extraneous collateral
+    const virtualCollateralBalance = await bond.virtualCollateralBalance();
+    const collateralBalance = await mockCollateralToken.balanceOf(bond.address);
+    expect(virtualCollateralBalance).to.equal(amount);
+    expect(virtualCollateralBalance).to.equal(collateralBalance.sub(extraneousAmount));
+
   });
 });
 
