@@ -33,10 +33,14 @@ describe("Tranche", () => {
       .createTranche("Tranche", "TRANCHE", mockCollateralToken.address);
     const receipt = await tx.wait();
 
-    let tranche;
-    if (receipt && receipt.events && receipt.events.length === 1 && receipt.events[0].args) {
-      tranche = <Tranche>await hre.ethers.getContractAt("Tranche", receipt.events[0].args.newTrancheAddress);
-    } else {
+    let tranche = undefined;
+    if (receipt && receipt.events) {
+      const trancheCreateEvent = receipt.events.find((event) => event.event === "TrancheCreated");
+      if (trancheCreateEvent && trancheCreateEvent.args) {
+        tranche = <Tranche>await hre.ethers.getContractAt("Tranche", trancheCreateEvent.args.newTrancheAddress);
+      }
+    }
+    if (!tranche) {
       throw new Error("Unable to create new tranche");
     }
 
