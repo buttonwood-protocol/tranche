@@ -324,16 +324,17 @@ contract BondController is IBondController, OwnableUpgradeable {
     }
 
     /**
-    * @dev Get the virtual collateral balance of the bond
-    * @return the virtual collateral balance
-    */
+     * @dev Get the virtual collateral balance of the bond
+     * @return the virtual collateral balance
+     */
     function virtualCollateralBalance() external view returns (uint256) {
         uint256 scaledCollateralBalance = IRebasingERC20(collateralToken).scaledBalanceOf(address(this));
         uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(this));
 
-        return (scaledCollateralBalance > lastScaledCollateralBalance)
-        ? Math.mulDiv(collateralBalance, lastScaledCollateralBalance, scaledCollateralBalance)
-        : collateralBalance;
+        return
+            (scaledCollateralBalance > lastScaledCollateralBalance)
+                ? Math.mulDiv(collateralBalance, lastScaledCollateralBalance, scaledCollateralBalance)
+                : collateralBalance;
     }
 
     /**
