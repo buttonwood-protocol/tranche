@@ -123,13 +123,13 @@ contract BondController is IBondController, OwnableUpgradeable {
         uint256[] memory trancheValues = new uint256[](trancheCount);
         for (uint256 i = 0; i < _tranches.length; i++) {
             // NOTE: solidity 0.8 checks for over/underflow natively so no need for SafeMath
-            uint256 trancheValue = (amount * _tranches[i].ratio) / TRANCHE_RATIO_GRANULARITY;
+            uint256 trancheValue = Math.mulDiv(amount, _tranches[i].ratio, TRANCHE_RATIO_GRANULARITY);
 
             // if there is any collateral, we should scale by the debt:collateral ratio
             // note: if totalDebt == 0 then we're minting for the first time
             // so shouldn't scale even if there is some collateral mistakenly sent in
             if (virtualCollateralBalance > 0 && _totalDebt > 0) {
-                trancheValue = (trancheValue * _totalDebt) / virtualCollateralBalance;
+                trancheValue = Math.mulDiv(trancheValue, _totalDebt, virtualCollateralBalance);
             }
             newDebt += trancheValue;
             trancheValues[i] = trancheValue;
@@ -243,7 +243,7 @@ contract BondController is IBondController, OwnableUpgradeable {
         : 0;
 
         // return as a proportion of the total debt redeemed
-        uint256 returnAmount = (total * virtualCollateralBalance) / totalDebt;
+        uint256 returnAmount = Math.mulDiv(total, virtualCollateralBalance, totalDebt);
 
         totalDebt -= total;
         TransferHelper.safeTransfer(collateralToken, _msgSender(), returnAmount);
