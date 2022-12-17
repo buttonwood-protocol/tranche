@@ -1556,9 +1556,9 @@ amdefine@>=0.0.4:
   resolved "https://registry.yarnpkg.com/amdefine/-/amdefine-1.0.1.tgz#4a5282ac164729e93619bcfd3ad151f817ce91f5"
   integrity sha1-SlKCrBZHKek2Gbz9OtFR+BfOkfU=
 
-"ampleforth-contracts@https://github.com/ampleforth/ampleforth-contracts.git#v1.2.1":
+"ampleforth-contracts@https://github.com/ampleforth/ampleforth-contracts#v1.2.1":
   version "0.0.1"
-  resolved "https://github.com/ampleforth/ampleforth-contracts.git#f65dc30e4aae0624345a58d37f5c91f385850166"
+  resolved "https://github.com/ampleforth/ampleforth-contracts#f65dc30e4aae0624345a58d37f5c91f385850166"
   dependencies:
     openzeppelin-contracts-4.4.1 "https://github.com/OpenZeppelin/openzeppelin-contracts.git#4.4.1"
 
