@@ -140,7 +140,7 @@ contract BondController is IBondController, OwnableUpgradeable {
             // note: if totalDebt == 0 then we're minting for the first time
             // so shouldn't scale even if there is some collateral mistakenly sent in
             if (collateralBalance > 0 && totalDebt > 0) {
-                trancheValue = (trancheValue * totalDebt) / collateralBalance;
+                trancheValue = Math.mulDiv(trancheValue, totalDebt, collateralBalance);
             }
             newDebt += trancheValue;
             trancheValues[i] = trancheValue;
@@ -236,7 +236,7 @@ contract BondController is IBondController, OwnableUpgradeable {
 
         uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(this));
         // return as a proportion of the total debt redeemed
-        uint256 returnAmount = (total * collateralBalance) / totalDebt;
+        uint256 returnAmount = Math.mulDiv(total, collateralBalance, totalDebt);
 
         totalDebt -= total;
         TransferHelper.safeTransfer(collateralToken, _msgSender(), returnAmount);
