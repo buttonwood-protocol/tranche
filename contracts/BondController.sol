@@ -98,8 +98,8 @@ contract BondController is IBondController, OwnableUpgradeable {
     }
 
     /**
-    * @dev Withdraw extraneous collateral that was incorrectly sent to the contract
-    */
+     * @dev Withdraw extraneous collateral that was incorrectly sent to the contract
+     */
     modifier withdrawExtraneous() {
         uint256 scaledCollateralBalance = IRebasingERC20(collateralToken).scaledBalanceOf(address(this));
         // If there is extraneous collateral, transfer to the owner
@@ -123,8 +123,6 @@ contract BondController is IBondController, OwnableUpgradeable {
     function deposit(uint256 amount) external override withdrawExtraneous {
         require(amount > 0, "BondController: invalid amount");
 
-        // saving totalDebt in memory to minimize sloads
-        uint256 _totalDebt = totalDebt;
         require(!isMature, "BondController: Already mature");
 
         uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(this));
@@ -141,8 +139,8 @@ contract BondController is IBondController, OwnableUpgradeable {
             // if there is any collateral, we should scale by the debt:collateral ratio
             // note: if totalDebt == 0 then we're minting for the first time
             // so shouldn't scale even if there is some collateral mistakenly sent in
-            if (collateralBalance > 0 && _totalDebt > 0) {
-                trancheValue = (trancheValue * _totalDebt) / collateralBalance;
+            if (collateralBalance > 0 && totalDebt > 0) {
+                trancheValue = (trancheValue * totalDebt) / collateralBalance;
             }
             newDebt += trancheValue;
             trancheValues[i] = trancheValue;
@@ -171,7 +169,7 @@ contract BondController is IBondController, OwnableUpgradeable {
     /**
      * @inheritdoc IBondController
      */
-    function mature() external override withdrawExtraneous{
+    function mature() external override withdrawExtraneous {
         require(!isMature, "BondController: Already mature");
         require(owner() == _msgSender() || maturityDate < block.timestamp, "BondController: Invalid call to mature");
         isMature = true;
