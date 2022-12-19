@@ -284,7 +284,7 @@ describe("Bond Controller", () => {
 
     it("should successfully deposit collateral and mint tranche tokens after small collateral transfer", async () => {
       const trancheValues = [200, 300, 500];
-      const { bond, tranches, mockCollateralToken, user } = await loadFixture(getFixture(trancheValues));
+      const { bond, tranches, mockCollateralToken, user, admin } = await loadFixture(getFixture(trancheValues));
 
       const amount = parse("1000");
       await mockCollateralToken.mint(await user.getAddress(), amount);
@@ -294,6 +294,8 @@ describe("Bond Controller", () => {
       await mockCollateralToken.mint(bond.address, "1");
 
       await expect(bond.connect(user).deposit(amount))
+        .to.emit(mockCollateralToken, "Transfer")
+        .withArgs(bond.address, await admin.getAddress(), "1")
         .to.emit(mockCollateralToken, "Transfer")
         .withArgs(await user.getAddress(), bond.address, amount)
         .to.emit(bond, "Deposit")
@@ -307,7 +309,8 @@ describe("Bond Controller", () => {
       }
 
       expect(await mockCollateralToken.balanceOf(await user.getAddress())).to.equal(0);
-      expect(await mockCollateralToken.balanceOf(bond.address)).to.equal(amount.add("1"));
+      // Extra tiny collateral transfer was already sent to owner
+      expect(await mockCollateralToken.balanceOf(bond.address)).to.equal(amount);
       expect(await bond.totalDebt()).to.equal(amount);
     });
 
@@ -531,26 +534,16 @@ describe("Bond Controller", () => {
         bond,
         tranches,
         mockCollateralToken,
-        admin: userA,
-        user: userB,
-        other: userC,
+        admin,
+        signers
       } = await loadFixture(getFixture(trancheValues));
+      const [userA, userB, userC] = signers;
 
       const amount1k = parse("1000");
 
-      // Mint 1000 collateral to userA and approve it for bond
+      // UserA mints and deposits 1000 collateral
       await mockCollateralToken.mint(await userA.getAddress(), amount1k);
       await mockCollateralToken.connect(userA).approve(bond.address, amount1k);
-
-      // Mint 1000 collateral to userB and approve it for bond
-      await mockCollateralToken.mint(await userB.getAddress(), amount1k);
-      await mockCollateralToken.connect(userB).approve(bond.address, amount1k);
-
-      // Mint 1000 collateral to userC and approve it for bond
-      await mockCollateralToken.mint(await userC.getAddress(), amount1k);
-      await mockCollateralToken.connect(userC).approve(bond.address, amount1k);
-
-      // UserA deposits 1000 collateral
       await bond.connect(userA).deposit(amount1k);
       // A-token supply is 200, UserA has balance of 200 As
       expect(await tranches[0].totalSupply()).to.equal(parse("200"));
@@ -562,10 +555,13 @@ describe("Bond Controller", () => {
       expect(await tranches[2].totalSupply()).to.equal(parse("500"));
       expect(await tranches[2].balanceOf(await userA.getAddress())).to.equal(parse("500"));
 
-      // UserB sends 1000 collateral to the bond without depositing
+      // UserB mints and sends 1000 collateral to the bond without depositing
+      await mockCollateralToken.mint(await userB.getAddress(), amount1k);
       await mockCollateralToken.connect(userB).transfer(bond.address, amount1k);
 
-      // UserC deposits 1000 collateral
+      // UserC mints and deposits 1000 collateral
+      await mockCollateralToken.mint(await userC.getAddress(), amount1k);
+      await mockCollateralToken.connect(userC).approve(bond.address, amount1k);
       await bond.connect(userC).deposit(amount1k);
       // A-token supply is 400, UserC has balance of 200 As
       expect(await tranches[0].totalSupply()).to.equal(parse("400"));
@@ -581,7 +577,8 @@ describe("Bond Controller", () => {
       expect(await mockCollateralToken.balanceOf(await userA.getAddress())).to.equal(0);
       expect(await mockCollateralToken.balanceOf(await userB.getAddress())).to.equal(0);
       expect(await mockCollateralToken.balanceOf(await userC.getAddress())).to.equal(0);
-      expect(await mockCollateralToken.balanceOf(bond.address)).to.equal(amount1k.mul(3));
+      expect(await mockCollateralToken.balanceOf(await admin.getAddress())).to.equal(amount1k);
+      expect(await mockCollateralToken.balanceOf(bond.address)).to.equal(amount1k.mul(2));
       expect(await bond.totalDebt()).to.equal(amount1k.mul(2));
     });
 
@@ -596,7 +593,7 @@ describe("Bond Controller", () => {
       const tx = await bond.connect(user).deposit(amount);
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("297140");
+      expect(gasUsed.toString()).to.equal("297099");
     });
   });
 
@@ -1682,10 +1679,10 @@ describe("Bond Controller: Ampl Stress-Testing", () => {
 
     // Balance Checks, userA: 1234, userB: ??, userC: 5678, admin: >0, bond: 0
     // Rounded precision to be expected
-    expectEqWithEpsilon(await ampl.balanceOf(await userA.getAddress()), ampleParse("1234"), 1);
+    expect(await ampl.balanceOf(await userA.getAddress())).to.equal(ampleParse("1234"));
     expect(await ampl.balanceOf(await userB.getAddress())).to.equal(ampleParse("0"));
     expect(await ampl.balanceOf(await userC.getAddress())).to.equal(ampleParse("5678"));
-    expect(await ampl.balanceOf(await admin.getAddress())).to.equal(adminAmount);
+    expectEqWithEpsilon(await ampl.balanceOf(await admin.getAddress()), adminAmount, 1);
     expect(await ampl.balanceOf(bond.address)).to.equal(ampleParse("0"));
   });
 });

@@ -115,6 +115,11 @@ contract BondController is IBondController, OwnableUpgradeable {
             ? Math.mulDiv(lastScaledCollateralBalance, collateralBalance, scaledCollateralBalance)
             : collateralBalance;
 
+        // Transfer extraneous collateral to the owner
+        if (scaledExtraneousCollateral > 0) {
+            TransferHelper.safeTransfer(collateralToken, owner(), collateralBalance - virtualCollateralBalance);
+        }
+
         require(
             depositLimit == 0 || virtualCollateralBalance + amount <= depositLimit,
             "BondController: Deposit limit"
@@ -141,8 +146,9 @@ contract BondController is IBondController, OwnableUpgradeable {
 
         TransferHelper.safeTransferFrom(collateralToken, _msgSender(), address(this), amount);
 
+        // Resetting lastScaledCollateralBalance to the current scaled balance since extraneous collateral is gone
         scaledCollateralBalance = IRebasingERC20(collateralToken).scaledBalanceOf(address(this));
-        lastScaledCollateralBalance = scaledCollateralBalance - scaledExtraneousCollateral;
+        lastScaledCollateralBalance = scaledCollateralBalance;
 
         // saving feeBps in memory to minimize sloads
         uint256 _feeBps = feeBps;
