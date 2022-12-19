@@ -350,7 +350,7 @@ contract BondController is IBondController, OwnableUpgradeable {
                 collateralBalance,
                 scaledCollateralBalance
             );
-            TransferHelper.safeTransfer(collateralToken, _msgSender(), extraneousCollateral);
+            TransferHelper.safeTransfer(collateralToken, owner(), extraneousCollateral);
             lastScaledCollateralBalance = IRebasingERC20(collateralToken).scaledBalanceOf(address(this));
         }
     }
