@@ -1367,11 +1367,6 @@ describe("Bond Controller", () => {
       await mockCollateralToken.mint(await userA.getAddress(), amount1k);
       await mockCollateralToken.connect(userA).approve(bond.address, amount1k);
 
-      // Mint extraneous collateral to userB and approve it for bond
-      const extraneousAmount = parse("987656432109876543210");
-      await mockCollateralToken.mint(await userB.getAddress(), extraneousAmount);
-      await mockCollateralToken.connect(userB).approve(bond.address, extraneousAmount);
-
       // UserA deposits 1000 collateral
       await bond.connect(userA).deposit(amount1k);
       // A-token supply is 200, UserA has balance of 200 As
@@ -1384,7 +1379,9 @@ describe("Bond Controller", () => {
       expect(await tranches[2].totalSupply()).to.equal(parse("500"));
       expect(await tranches[2].balanceOf(await userA.getAddress())).to.equal(parse("500"));
 
-      // UserB sends 1000 collateral to the bond without depositing
+      // Mint extraneous collateral to userB who sends it to the bond without depositing
+      const extraneousAmount = parse("987656432109876543210");
+      await mockCollateralToken.mint(await userB.getAddress(), extraneousAmount);
       await mockCollateralToken.connect(userB).transfer(bond.address, extraneousAmount);
 
       // Validating tokens have been transferred
@@ -1441,7 +1438,7 @@ describe("Bond Controller", () => {
       expect(await mockCollateralToken.balanceOf(await admin.getAddress())).to.equal(0);
     });
 
-    it("Admin should all extraneous collateral when there's no extraneous collateral", async () => {
+    it("Admin should withdraw all extraneous collateral when there is extraneous collateral", async () => {
       const trancheValues = [200, 300, 500];
       const { bond, mockCollateralToken, user, other, admin } = await loadFixture(getFixture(trancheValues));
 
