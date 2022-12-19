@@ -111,7 +111,7 @@ contract BondController is IBondController, OwnableUpgradeable {
         uint256 scaledExtraneousCollateral = scaledCollateralBalance - lastScaledCollateralBalance;
 
         uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(this));
-        uint256 virtualCollateralBalance = (scaledCollateralBalance > lastScaledCollateralBalance)
+        uint256 virtualCollateralBalance = (scaledExtraneousCollateral > 0)
             ? Math.mulDiv(lastScaledCollateralBalance, collateralBalance, scaledCollateralBalance)
             : collateralBalance;
 
