@@ -708,7 +708,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("228252");
+      expect(gasUsed.toString()).to.equal("228349");
     });
   });
 
@@ -1118,7 +1118,7 @@ describe("Bond Controller", () => {
       expect(await mockCollateralToken.balanceOf(await admin.getAddress())).to.equal(extraneousAmount);
     });
 
-    it("should redeemMature correct amounts and leave pre-mature extraneous collateral for admin", async () => {
+    it("should redeemMature correct amounts and transfer pre-mature extraneous collateral to admin", async () => {
       const trancheValues = [200, 300, 500];
       const { bond, tranches, mockCollateralToken, user, admin, other } = await loadFixture(getFixture(trancheValues));
 
@@ -1142,8 +1142,10 @@ describe("Bond Controller", () => {
       await mockCollateralToken.mint(await other.getAddress(), extraneousAmount);
       await mockCollateralToken.connect(other).transfer(bond.address, extraneousAmount);
 
-      // Admin matures the bond
-      await bond.connect(admin).mature();
+      // Admin matures the bond and has extraneous collateral transferred to them (as owner of the bond)
+      await expect(bond.connect(admin).mature())
+        .to.emit(mockCollateralToken, "Transfer")
+        .withArgs(bond.address, await admin.getAddress(), extraneousAmount);
 
       // Validating tranches all have expected amounts
       for (let i = 0; i < tranches.length; i++) {
@@ -1162,9 +1164,6 @@ describe("Bond Controller", () => {
 
       // Validating bond total debt is emptied
       expect(await bond.totalDebt()).to.equal(0);
-
-      // Emptying the extraneous collateral
-      await bond.connect(admin).withdrawExtraneousCollateral();
 
       // Validating bond has correct collateral and admin has all the extraneous collateral
       expect(await mockCollateralToken.balanceOf(bond.address)).to.equal(0);
@@ -1416,7 +1415,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("158272");
+      expect(gasUsed.toString()).to.equal("158284");
     });
   });
 
@@ -1677,7 +1676,7 @@ describe("Bond Controller: Ampl Stress-Testing", () => {
       await expect(bond.connect(userC).redeemMature(tranche.address, trancheValue));
     }
 
-    // admin withdraws all extraneous collateral from bond
+    // admin withdraws all remaining extraneous collateral from bond
     await bond.connect(admin).withdrawExtraneousCollateral();
     const adminAmount = ampleParse("9012.3456").mul(2).add(ampleParse("7890.1234")).add(ampleParse("5678.9123"));
 

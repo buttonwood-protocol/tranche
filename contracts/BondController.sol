@@ -178,6 +178,7 @@ contract BondController is IBondController, OwnableUpgradeable {
         uint256 virtualCollateralBalance = (scaledCollateralBalance > 0)
             ? Math.mulDiv(lastScaledCollateralBalance, collateralBalance, scaledCollateralBalance)
             : 0;
+        uint256 leftOverCollateral = collateralBalance - virtualCollateralBalance;
 
         // Go through all tranches A-Y (not Z) delivering collateral if possible
         for (uint256 i = 0; i < _tranches.length - 1 && virtualCollateralBalance > 0; i++) {
@@ -200,6 +201,12 @@ contract BondController is IBondController, OwnableUpgradeable {
             _tranche.redeem(address(this), owner(), IERC20(_tranche).balanceOf(address(this)));
         }
 
+        // Transfer any leftover collateral to the owner
+        if (leftOverCollateral > 0) {
+            TransferHelper.safeTransfer(collateralToken, owner(), leftOverCollateral);
+        }
+
+        // All deposited collateral has been paid out
         lastScaledCollateralBalance = 0;
 
         emit Mature(_msgSender());
