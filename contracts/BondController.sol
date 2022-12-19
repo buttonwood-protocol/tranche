@@ -342,15 +342,10 @@ contract BondController is IBondController, OwnableUpgradeable {
      */
     function withdrawExtraneousCollateral() external onlyOwner {
         uint256 scaledCollateralBalance = IRebasingERC20(collateralToken).scaledBalanceOf(address(this));
-        uint256 scaledExtraneousCollateral = scaledCollateralBalance - lastScaledCollateralBalance;
-        if (scaledExtraneousCollateral > 0) {
+        if (scaledCollateralBalance > lastScaledCollateralBalance) {
             uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(this));
-            uint256 extraneousCollateral = Math.mulDiv(
-                scaledExtraneousCollateral,
-                collateralBalance,
-                scaledCollateralBalance
-            );
-            TransferHelper.safeTransfer(collateralToken, owner(), extraneousCollateral);
+            uint256 virtualCollateralBalance = Math.mulDiv(lastScaledCollateralBalance, collateralBalance, scaledCollateralBalance);
+            TransferHelper.safeTransfer(collateralToken, owner(), collateralBalance - virtualCollateralBalance);
             lastScaledCollateralBalance = IRebasingERC20(collateralToken).scaledBalanceOf(address(this));
         }
     }
