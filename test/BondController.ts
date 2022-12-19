@@ -530,13 +530,7 @@ describe("Bond Controller", () => {
 
     it("should successfully mint correct amount of tranche tokens after extraneous transfer", async () => {
       const trancheValues = [200, 300, 500];
-      const {
-        bond,
-        tranches,
-        mockCollateralToken,
-        admin,
-        signers
-      } = await loadFixture(getFixture(trancheValues));
+      const { bond, tranches, mockCollateralToken, admin, signers } = await loadFixture(getFixture(trancheValues));
       const [userA, userB, userC] = signers;
 
       const amount1k = parse("1000");
@@ -584,13 +578,7 @@ describe("Bond Controller", () => {
 
     it("should successfully mint correct amount of tranche tokens with rebases and extraneous transfers", async () => {
       const trancheValues = [200, 300, 500];
-      const {
-        bond,
-        tranches,
-        mockCollateralToken,
-        admin,
-        signers
-      } = await loadFixture(getFixture(trancheValues));
+      const { bond, tranches, mockCollateralToken, admin, signers } = await loadFixture(getFixture(trancheValues));
       const [userA, userB, userC] = signers;
 
       const amount1k = parse("1000");
