@@ -98,32 +98,36 @@ contract BondController is IBondController, OwnableUpgradeable {
     }
 
     /**
+    * @dev Withdraw extraneous collateral that was incorrectly sent to the contract
+    */
+    modifier withdrawExtraneous() {
+        uint256 scaledCollateralBalance = IRebasingERC20(collateralToken).scaledBalanceOf(address(this));
+        if (scaledCollateralBalance > lastScaledCollateralBalance) {
+            uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(this));
+            uint256 virtualCollateralBalance = Math.mulDiv(
+                lastScaledCollateralBalance,
+                collateralBalance,
+                scaledCollateralBalance
+            );
+            TransferHelper.safeTransfer(collateralToken, owner(), collateralBalance - virtualCollateralBalance);
+            lastScaledCollateralBalance = IRebasingERC20(collateralToken).scaledBalanceOf(address(this));
+        }
+        _;
+        lastScaledCollateralBalance = IRebasingERC20(collateralToken).scaledBalanceOf(address(this));
+    }
+
+    /**
      * @inheritdoc IBondController
      */
-    function deposit(uint256 amount) external override {
+    function deposit(uint256 amount) external override withdrawExtraneous {
         require(amount > 0, "BondController: invalid amount");
 
         // saving totalDebt in memory to minimize sloads
         uint256 _totalDebt = totalDebt;
         require(!isMature, "BondController: Already mature");
 
-        uint256 scaledCollateralBalance = IRebasingERC20(collateralToken).scaledBalanceOf(address(this));
-        uint256 scaledExtraneousCollateral = scaledCollateralBalance - lastScaledCollateralBalance;
-
         uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(this));
-        uint256 virtualCollateralBalance = (scaledExtraneousCollateral > 0)
-            ? Math.mulDiv(lastScaledCollateralBalance, collateralBalance, scaledCollateralBalance)
-            : collateralBalance;
-
-        // Transfer extraneous collateral to the owner
-        if (scaledExtraneousCollateral > 0) {
-            TransferHelper.safeTransfer(collateralToken, owner(), collateralBalance - virtualCollateralBalance);
-        }
-
-        require(
-            depositLimit == 0 || virtualCollateralBalance + amount <= depositLimit,
-            "BondController: Deposit limit"
-        );
+        require(depositLimit == 0 || collateralBalance + amount <= depositLimit, "BondController: Deposit limit");
 
         TrancheData[] memory _tranches = tranches;
 
@@ -131,13 +135,13 @@ contract BondController is IBondController, OwnableUpgradeable {
         uint256[] memory trancheValues = new uint256[](trancheCount);
         for (uint256 i = 0; i < _tranches.length; i++) {
             // NOTE: solidity 0.8 checks for over/underflow natively so no need for SafeMath
-            uint256 trancheValue = Math.mulDiv(amount, _tranches[i].ratio, TRANCHE_RATIO_GRANULARITY);
+            uint256 trancheValue = (amount * _tranches[i].ratio) / TRANCHE_RATIO_GRANULARITY;
 
             // if there is any collateral, we should scale by the debt:collateral ratio
             // note: if totalDebt == 0 then we're minting for the first time
             // so shouldn't scale even if there is some collateral mistakenly sent in
-            if (virtualCollateralBalance > 0 && _totalDebt > 0) {
-                trancheValue = Math.mulDiv(trancheValue, _totalDebt, virtualCollateralBalance);
+            if (collateralBalance > 0 && _totalDebt > 0) {
+                trancheValue = (trancheValue * _totalDebt) / collateralBalance;
             }
             newDebt += trancheValue;
             trancheValues[i] = trancheValue;
@@ -145,11 +149,6 @@ contract BondController is IBondController, OwnableUpgradeable {
         totalDebt += newDebt;
 
         TransferHelper.safeTransferFrom(collateralToken, _msgSender(), address(this), amount);
-
-        // Resetting lastScaledCollateralBalance to the current scaled balance since extraneous collateral is gone
-        scaledCollateralBalance = IRebasingERC20(collateralToken).scaledBalanceOf(address(this));
-        lastScaledCollateralBalance = scaledCollateralBalance;
-
         // saving feeBps in memory to minimize sloads
         uint256 _feeBps = feeBps;
         for (uint256 i = 0; i < trancheValues.length; i++) {
@@ -171,28 +170,20 @@ contract BondController is IBondController, OwnableUpgradeable {
     /**
      * @inheritdoc IBondController
      */
-    function mature() external override {
+    function mature() external override withdrawExtraneous{
         require(!isMature, "BondController: Already mature");
         require(owner() == _msgSender() || maturityDate < block.timestamp, "BondController: Invalid call to mature");
         isMature = true;
 
         TrancheData[] memory _tranches = tranches;
-
-        // Calculate the virtualCollateralBalance = collateralBalance - extraneousCollateral
-        uint256 scaledCollateralBalance = IRebasingERC20(collateralToken).scaledBalanceOf(address(this));
         uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(this));
-        uint256 virtualCollateralBalance = (scaledCollateralBalance > 0)
-            ? Math.mulDiv(lastScaledCollateralBalance, collateralBalance, scaledCollateralBalance)
-            : 0;
-        uint256 leftOverCollateral = collateralBalance - virtualCollateralBalance;
-
         // Go through all tranches A-Y (not Z) delivering collateral if possible
-        for (uint256 i = 0; i < _tranches.length - 1 && virtualCollateralBalance > 0; i++) {
+        for (uint256 i = 0; i < _tranches.length - 1 && collateralBalance > 0; i++) {
             ITranche _tranche = _tranches[i].token;
             // pay out the entire tranche token's owed collateral (equal to the supply of tranche tokens)
             // if there is not enough collateral to pay it out, pay as much as we have
-            uint256 amount = Math.min(_tranche.totalSupply(), virtualCollateralBalance);
-            virtualCollateralBalance -= amount;
+            uint256 amount = Math.min(_tranche.totalSupply(), collateralBalance);
+            collateralBalance -= amount;
 
             TransferHelper.safeTransfer(collateralToken, address(_tranche), amount);
 
@@ -201,19 +192,11 @@ contract BondController is IBondController, OwnableUpgradeable {
         }
 
         // Transfer any remaining collaeral to the Z tranche
-        if (virtualCollateralBalance > 0) {
+        if (collateralBalance > 0) {
             ITranche _tranche = _tranches[_tranches.length - 1].token;
-            TransferHelper.safeTransfer(collateralToken, address(_tranche), virtualCollateralBalance);
+            TransferHelper.safeTransfer(collateralToken, address(_tranche), collateralBalance);
             _tranche.redeem(address(this), owner(), IERC20(_tranche).balanceOf(address(this)));
         }
-
-        // Transfer any leftover collateral to the owner
-        if (leftOverCollateral > 0) {
-            TransferHelper.safeTransfer(collateralToken, owner(), leftOverCollateral);
-        }
-
-        // All deposited collateral has been paid out
-        lastScaledCollateralBalance = 0;
 
         emit Mature(_msgSender());
     }
@@ -233,7 +216,7 @@ contract BondController is IBondController, OwnableUpgradeable {
     /**
      * @inheritdoc IBondController
      */
-    function redeem(uint256[] memory amounts) external override {
+    function redeem(uint256[] memory amounts) external override withdrawExtraneous {
         require(!isMature, "BondController: Bond is already mature");
 
         TrancheData[] memory _tranches = tranches;
@@ -252,21 +235,12 @@ contract BondController is IBondController, OwnableUpgradeable {
             _tranches[i].token.burn(_msgSender(), amounts[i]);
         }
 
-        uint256 scaledCollateralBalancePre = IRebasingERC20(collateralToken).scaledBalanceOf(address(this));
-        uint256 collateralBalancePre = IERC20(collateralToken).balanceOf(address(this));
-        uint256 virtualCollateralBalance = (scaledCollateralBalancePre > 0)
-            ? Math.mulDiv(lastScaledCollateralBalance, collateralBalancePre, scaledCollateralBalancePre)
-            : 0;
-
+        uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(this));
         // return as a proportion of the total debt redeemed
-        uint256 returnAmount = Math.mulDiv(virtualCollateralBalance, total, totalDebt);
+        uint256 returnAmount = (total * collateralBalance) / totalDebt;
 
         totalDebt -= total;
         TransferHelper.safeTransfer(collateralToken, _msgSender(), returnAmount);
-        uint256 scaledCollateralBalancePost = IRebasingERC20(collateralToken).scaledBalanceOf(address(this));
-        lastScaledCollateralBalance =
-            lastScaledCollateralBalance -
-            (scaledCollateralBalancePre - scaledCollateralBalancePost);
         emit Redeem(_msgSender(), amounts);
 
         _enforceTotalDebt();
@@ -348,22 +322,5 @@ contract BondController is IBondController, OwnableUpgradeable {
             (scaledCollateralBalance > lastScaledCollateralBalance)
                 ? Math.mulDiv(lastScaledCollateralBalance, collateralBalance, scaledCollateralBalance)
                 : collateralBalance;
-    }
-
-    /**
-     * @dev Withdraw extraneous collateral that was incorrectly sent to the contract
-     */
-    function withdrawExtraneousCollateral() external onlyOwner {
-        uint256 scaledCollateralBalance = IRebasingERC20(collateralToken).scaledBalanceOf(address(this));
-        if (scaledCollateralBalance > lastScaledCollateralBalance) {
-            uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(this));
-            uint256 virtualCollateralBalance = Math.mulDiv(
-                lastScaledCollateralBalance,
-                collateralBalance,
-                scaledCollateralBalance
-            );
-            TransferHelper.safeTransfer(collateralToken, owner(), collateralBalance - virtualCollateralBalance);
-            lastScaledCollateralBalance = IRebasingERC20(collateralToken).scaledBalanceOf(address(this));
-        }
     }
 }

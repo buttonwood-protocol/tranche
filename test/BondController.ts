@@ -648,7 +648,7 @@ describe("Bond Controller", () => {
       const tx = await bond.connect(user).deposit(amount);
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("297099");
+      expect(gasUsed.toString()).to.equal("296833");
     });
   });
 
@@ -760,7 +760,7 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("228349");
+      expect(gasUsed.toString()).to.equal("229770");
     });
   });
 
@@ -1120,7 +1120,7 @@ describe("Bond Controller", () => {
       );
     });
 
-    it("should redeemMature correct amounts and leave post-mature extraneous collateral for admin", async () => {
+    it("should redeemMature correct amounts and leave post-mature extraneous collateral locked in contract", async () => {
       const trancheValues = [200, 300, 500];
       const { bond, tranches, mockCollateralToken, user, admin, other } = await loadFixture(getFixture(trancheValues));
 
@@ -1162,12 +1162,9 @@ describe("Bond Controller", () => {
       // Validating bond total debt is emptied
       expect(await bond.totalDebt()).to.equal(0);
 
-      // Emptying the extraneous collateral
-      await bond.connect(admin).withdrawExtraneousCollateral();
-
-      // Validating bond has correct collateral and admin has all the extraneous collateral
-      expect(await mockCollateralToken.balanceOf(bond.address)).to.equal(0);
-      expect(await mockCollateralToken.balanceOf(await admin.getAddress())).to.equal(extraneousAmount);
+      // Validating bond has all the post-maturation extraneous collateral and that admin still has 0 collateral
+      expect(await mockCollateralToken.balanceOf(bond.address)).to.equal(extraneousAmount);
+      expect(await mockCollateralToken.balanceOf(await admin.getAddress())).to.equal(0);
     });
 
     it("should redeemMature correct amounts and transfer pre-mature extraneous collateral to admin", async () => {
@@ -1402,7 +1399,7 @@ describe("Bond Controller", () => {
       );
     });
 
-    it("should early-redeem correct amounts and leave pre-mature extraneous collateral for admin", async () => {
+    it("should early-redeem correct amounts and transfer pre-mature extraneous collateral to owner", async () => {
       const trancheValues = [200, 300, 500];
       const {
         bond,
@@ -1450,9 +1447,6 @@ describe("Bond Controller", () => {
       // Validating bond total debt is emptied
       expect(await bond.totalDebt()).to.equal(0);
 
-      // Emptying the extraneous collateral
-      await bond.connect(admin).withdrawExtraneousCollateral();
-
       // Validating bond has correct collateral and admin has all the extraneous collateral
       expect(await mockCollateralToken.balanceOf(bond.address)).to.equal(0);
       expect(await mockCollateralToken.balanceOf(await admin.getAddress())).to.equal(extraneousAmount);
@@ -1467,12 +1461,12 @@ describe("Bond Controller", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("158284");
+      expect(gasUsed.toString()).to.equal("157801");
     });
   });
 
   describe("Extraneous Collateral", function () {
-    it("Admin should withdraw nothing when there's no extraneous collateral", async () => {
+    it("No withdrawal to admin when there's no extraneous collateral", async () => {
       const trancheValues = [200, 300, 500];
       const { bond, mockCollateralToken, user, admin } = await loadFixture(getFixture(trancheValues));
 
@@ -1482,37 +1476,37 @@ describe("Bond Controller", () => {
       await mockCollateralToken.connect(user).approve(bond.address, amount);
       await expect(bond.connect(user).deposit(amount));
 
-      // Admin attempts to withdraw any extraneous collateral
-      await expect(bond.connect(admin).withdrawExtraneousCollateral());
-
       // Admin has no collateral
       expect(await mockCollateralToken.balanceOf(await admin.getAddress())).to.equal(0);
     });
 
-    it("Admin should withdraw all extraneous collateral when there is extraneous collateral", async () => {
+    it("Admin should get extraneous withdrawal when there is (pre-mature) extraneous collateral", async () => {
       const trancheValues = [200, 300, 500];
       const { bond, mockCollateralToken, user, other, admin } = await loadFixture(getFixture(trancheValues));
-
-      // User mints 4321 collateral and deposits it
-      const amount = parse("4321");
-      await mockCollateralToken.mint(await user.getAddress(), amount);
-      await mockCollateralToken.connect(user).approve(bond.address, amount);
-      await expect(bond.connect(user).deposit(amount));
 
       // other mints 1000 collateral and extraneously sends it to the bond
       const extraneousAmount = parse("5678901234");
       await mockCollateralToken.mint(await other.getAddress(), extraneousAmount);
       await mockCollateralToken.connect(other).transfer(bond.address, extraneousAmount);
 
-      // Balance Check - user: 0, other: 0, bond: 5678905555
+      // Balance Check - user: 0, other: 0, bond: 5678901234, admin: 0
       expect(await mockCollateralToken.balanceOf(await user.getAddress())).to.equal(0);
       expect(await mockCollateralToken.balanceOf(await other.getAddress())).to.equal(0);
-      expect(await mockCollateralToken.balanceOf(bond.address)).to.equal(amount.add(extraneousAmount));
+      expect(await mockCollateralToken.balanceOf(bond.address)).to.equal(extraneousAmount);
+      expect(await mockCollateralToken.balanceOf(await admin.getAddress())).to.equal(0);
 
-      // Admin attempts to withdraw any extraneous collateral
-      await expect(bond.connect(admin).withdrawExtraneousCollateral());
+      // User mints 4321 collateral and deposits it
+      const amount = parse("4321");
+      await mockCollateralToken.mint(await user.getAddress(), amount);
+      await mockCollateralToken.connect(user).approve(bond.address, amount);
+      await expect(bond.connect(user).deposit(amount))
+        .to.emit(mockCollateralToken, "Transfer")
+        .withArgs(bond.address, await admin.getAddress(), extraneousAmount);
 
-      // Admin has all extraneous collateral transferred from other
+      // Balance Check - user: 0, other: 0, bond: 4321, admin: 5678901234
+      expect(await mockCollateralToken.balanceOf(await user.getAddress())).to.equal(0);
+      expect(await mockCollateralToken.balanceOf(await other.getAddress())).to.equal(0);
+      expect(await mockCollateralToken.balanceOf(bond.address)).to.equal(amount);
       expect(await mockCollateralToken.balanceOf(await admin.getAddress())).to.equal(extraneousAmount);
     });
   });
@@ -1717,7 +1711,7 @@ describe("Bond Controller: Ampl Stress-Testing", () => {
     // Bond matures
     await bond.connect(admin).mature();
 
-    // userB transfers extraneous 5678.9123 AMPL
+    // userB transfers extraneous 5678.9123 AMPL (this is expected to be stuck in the bond contract)
     await mint(await userB.getAddress(), ampleParse("5678.9123"));
     await ampl.connect(userB).transfer(bond.address, ampleParse("5678.9123"));
 
@@ -1728,16 +1722,13 @@ describe("Bond Controller: Ampl Stress-Testing", () => {
       await expect(bond.connect(userC).redeemMature(tranche.address, trancheValue));
     }
 
-    // admin withdraws all remaining extraneous collateral from bond
-    await bond.connect(admin).withdrawExtraneousCollateral();
-    const adminAmount = ampleParse("9012.3456").mul(2).add(ampleParse("7890.1234")).add(ampleParse("5678.9123"));
-
-    // Balance Checks, userA: 1234, userB: ??, userC: 5678, admin: >0, bond: 0
     // Rounded precision to be expected
+    const adminAmount = ampleParse("9012.3456").mul(2).add(ampleParse("7890.1234"));
+    // Balance Checks, userA: 1234, userB: ??, userC: 5678, admin: >0, bond: 5678.9123
     expect(await ampl.balanceOf(await userA.getAddress())).to.equal(ampleParse("1234"));
     expect(await ampl.balanceOf(await userB.getAddress())).to.equal(ampleParse("0"));
     expect(await ampl.balanceOf(await userC.getAddress())).to.equal(ampleParse("5678"));
     expectEqWithEpsilon(await ampl.balanceOf(await admin.getAddress()), adminAmount, 1);
-    expect(await ampl.balanceOf(bond.address)).to.equal(ampleParse("0"));
+    expect(await ampl.balanceOf(bond.address)).to.equal(ampleParse("5678.9123"));
   });
 });
