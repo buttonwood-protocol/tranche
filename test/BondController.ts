@@ -582,6 +582,73 @@ describe("Bond Controller", () => {
       expect(await bond.totalDebt()).to.equal(amount1k.mul(2));
     });
 
+    it("should successfully mint correct amount of tranche tokens with rebases and extraneous transfers", async () => {
+      const trancheValues = [200, 300, 500];
+      const {
+        bond,
+        tranches,
+        mockCollateralToken,
+        admin,
+        signers
+      } = await loadFixture(getFixture(trancheValues));
+      const [userA, userB, userC] = signers;
+
+      const amount1k = parse("1000");
+
+      // UserA mints and deposits 1000 collateral
+      await mockCollateralToken.mint(await userA.getAddress(), amount1k);
+      await mockCollateralToken.connect(userA).approve(bond.address, amount1k);
+      await bond.connect(userA).deposit(amount1k);
+      // A-token supply is 200, UserA has balance of 200 As
+      expect(await tranches[0].totalSupply()).to.equal(parse("200"));
+      expect(await tranches[0].balanceOf(await userA.getAddress())).to.equal(parse("200"));
+      // B-token supply is 300, UserA has balance of 300 Bs
+      expect(await tranches[1].totalSupply()).to.equal(parse("300"));
+      expect(await tranches[1].balanceOf(await userA.getAddress())).to.equal(parse("300"));
+      // Z-token supply is 500, UserA has balance of 500 Zs
+      expect(await tranches[2].totalSupply()).to.equal(parse("500"));
+      expect(await tranches[2].balanceOf(await userA.getAddress())).to.equal(parse("500"));
+
+      // Rebasing x2
+      await mockCollateralToken.setMultiplier(20000);
+
+      // UserB mints and sends 1000 collateral to the bond without depositing
+      await mockCollateralToken.mint(await userB.getAddress(), amount1k);
+      await mockCollateralToken.connect(userB).transfer(bond.address, amount1k);
+
+      // Rebasing x2
+      await mockCollateralToken.setMultiplier(40000);
+
+      // UserB mints and sends 1000 collateral to the bond without depositing
+      await mockCollateralToken.mint(await userB.getAddress(), amount1k);
+      await mockCollateralToken.connect(userB).transfer(bond.address, amount1k);
+
+      // UserC mints and deposits 1000 collateral
+      await mockCollateralToken.mint(await userC.getAddress(), amount1k);
+      await mockCollateralToken.connect(userC).approve(bond.address, amount1k);
+      await bond.connect(userC).deposit(amount1k);
+      // A-token supply is 400, UserC has balance of 200 As
+      expect(await tranches[0].totalSupply()).to.equal(parse("250"));
+      expect(await tranches[0].balanceOf(await userC.getAddress())).to.equal(parse("50"));
+      // B-token supply is 600, UserC has balance of 300 Bs
+      expect(await tranches[1].totalSupply()).to.equal(parse("375"));
+      expect(await tranches[1].balanceOf(await userC.getAddress())).to.equal(parse("75"));
+      // Z-token supply is 1000, UserC has balance of 500 Zs
+      expect(await tranches[2].totalSupply()).to.equal(parse("625"));
+      expect(await tranches[2].balanceOf(await userC.getAddress())).to.equal(parse("125"));
+
+      // Rebasing x1.25
+      await mockCollateralToken.setMultiplier(50000);
+
+      // Validating tokens have been transferred
+      expect(await mockCollateralToken.balanceOf(await userA.getAddress())).to.equal(0);
+      expect(await mockCollateralToken.balanceOf(await userB.getAddress())).to.equal(0);
+      expect(await mockCollateralToken.balanceOf(await userC.getAddress())).to.equal(0);
+      expect(await mockCollateralToken.balanceOf(await admin.getAddress())).to.equal(parse("3750"));
+      expect(await mockCollateralToken.balanceOf(bond.address)).to.equal(parse("6250"));
+      expect(await bond.totalDebt()).to.equal(parse("1250"));
+    });
+
     it("gas [ @skip-on-coverage ]", async () => {
       const trancheValues = [200, 300, 500];
       const { bond, mockCollateralToken, user } = await loadFixture(async () => await setupTestContext(trancheValues));
