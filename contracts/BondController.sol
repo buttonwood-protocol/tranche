@@ -112,7 +112,7 @@ contract BondController is IBondController, OwnableUpgradeable {
 
         uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(this));
         uint256 virtualCollateralBalance = (scaledCollateralBalance > lastScaledCollateralBalance)
-            ? Math.mulDiv(collateralBalance, lastScaledCollateralBalance, scaledCollateralBalance)
+            ? Math.mulDiv(lastScaledCollateralBalance, collateralBalance, scaledCollateralBalance)
             : collateralBalance;
 
         require(
@@ -176,7 +176,7 @@ contract BondController is IBondController, OwnableUpgradeable {
         uint256 scaledCollateralBalance = IRebasingERC20(collateralToken).scaledBalanceOf(address(this));
         uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(this));
         uint256 virtualCollateralBalance = (scaledCollateralBalance > 0)
-            ? Math.mulDiv(collateralBalance, lastScaledCollateralBalance, scaledCollateralBalance)
+            ? Math.mulDiv(lastScaledCollateralBalance, collateralBalance, scaledCollateralBalance)
             : 0;
 
         // Go through all tranches A-Y (not Z) delivering collateral if possible
@@ -240,13 +240,13 @@ contract BondController is IBondController, OwnableUpgradeable {
         }
 
         uint256 scaledCollateralBalancePre = IRebasingERC20(collateralToken).scaledBalanceOf(address(this));
-        uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(this));
+        uint256 collateralBalancePre = IERC20(collateralToken).balanceOf(address(this));
         uint256 virtualCollateralBalance = (scaledCollateralBalancePre > 0)
-            ? Math.mulDiv(collateralBalance, lastScaledCollateralBalance, scaledCollateralBalancePre)
+            ? Math.mulDiv(lastScaledCollateralBalance, collateralBalancePre, scaledCollateralBalancePre)
             : 0;
 
         // return as a proportion of the total debt redeemed
-        uint256 returnAmount = Math.mulDiv(total, virtualCollateralBalance, totalDebt);
+        uint256 returnAmount = Math.mulDiv(virtualCollateralBalance, total, totalDebt);
 
         totalDebt -= total;
         TransferHelper.safeTransfer(collateralToken, _msgSender(), returnAmount);
@@ -333,7 +333,7 @@ contract BondController is IBondController, OwnableUpgradeable {
 
         return
             (scaledCollateralBalance > lastScaledCollateralBalance)
-                ? Math.mulDiv(collateralBalance, lastScaledCollateralBalance, scaledCollateralBalance)
+                ? Math.mulDiv(lastScaledCollateralBalance, collateralBalance, scaledCollateralBalance)
                 : collateralBalance;
     }
 
@@ -346,8 +346,8 @@ contract BondController is IBondController, OwnableUpgradeable {
         if (scaledExtraneousCollateral > 0) {
             uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(this));
             uint256 extraneousCollateral = Math.mulDiv(
-                collateralBalance,
                 scaledExtraneousCollateral,
+                collateralBalance,
                 scaledCollateralBalance
             );
             TransferHelper.safeTransfer(collateralToken, _msgSender(), extraneousCollateral);
