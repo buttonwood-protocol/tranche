@@ -578,7 +578,7 @@ describe("WETH Loan Router", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("699953");
+      expect(gasUsed.toString()).to.equal("699963");
       const costOfGas = gasUsed.mul(receipt.effectiveGasPrice);
       expect(await user.getBalance()).to.eq(
         startingBalance.sub(amount).sub(costOfGas),
