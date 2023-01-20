@@ -98,9 +98,9 @@ contract BondController is IBondController, OwnableUpgradeable {
     }
 
     /**
-     * @dev Withdraw extraneous collateral that was incorrectly sent to the contract
+     * @dev Skims extraneous collateral that was incorrectly sent to the contract
      */
-    modifier withdrawExtraneous() {
+    modifier onSkim() {
         uint256 scaledCollateralBalance = IRebasingERC20(collateralToken).scaledBalanceOf(address(this));
         // If there is extraneous collateral, transfer to the owner
         if (scaledCollateralBalance > lastScaledCollateralBalance) {
@@ -120,7 +120,7 @@ contract BondController is IBondController, OwnableUpgradeable {
     /**
      * @inheritdoc IBondController
      */
-    function deposit(uint256 amount) external override withdrawExtraneous {
+    function deposit(uint256 amount) external override onSkim {
         require(amount > 0, "BondController: invalid amount");
 
         require(!isMature, "BondController: Already mature");
@@ -169,7 +169,7 @@ contract BondController is IBondController, OwnableUpgradeable {
     /**
      * @inheritdoc IBondController
      */
-    function mature() external override withdrawExtraneous {
+    function mature() external override onSkim {
         require(!isMature, "BondController: Already mature");
         require(owner() == _msgSender() || maturityDate < block.timestamp, "BondController: Invalid call to mature");
         isMature = true;
@@ -215,7 +215,7 @@ contract BondController is IBondController, OwnableUpgradeable {
     /**
      * @inheritdoc IBondController
      */
-    function redeem(uint256[] memory amounts) external override withdrawExtraneous {
+    function redeem(uint256[] memory amounts) external override onSkim {
         require(!isMature, "BondController: Bond is already mature");
 
         TrancheData[] memory _tranches = tranches;

@@ -1469,7 +1469,7 @@ describe("Bond Controller", () => {
   });
 
   describe("Extraneous Collateral", function () {
-    it("No withdrawal to admin when there's no extraneous collateral", async () => {
+    it("No skimming to admin when there's no extraneous collateral", async () => {
       const trancheValues = [200, 300, 500];
       const { bond, mockCollateralToken, user, admin } = await loadFixture(getFixture(trancheValues));
 
@@ -1483,7 +1483,7 @@ describe("Bond Controller", () => {
       expect(await mockCollateralToken.balanceOf(await admin.getAddress())).to.equal(0);
     });
 
-    it("Admin should get extraneous withdrawal when there is (pre-mature) extraneous collateral", async () => {
+    it("Admin should get skim when there is (pre-mature) extraneous collateral", async () => {
       const trancheValues = [200, 300, 500];
       const { bond, mockCollateralToken, user, other, admin } = await loadFixture(getFixture(trancheValues));
 
