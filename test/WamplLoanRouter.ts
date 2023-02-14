@@ -673,7 +673,7 @@ describe("WAMPL Loan Router", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("754595");
+      expect(gasUsed.toString()).to.equal("771292");
       const costOfGas = gasUsed.mul(receipt.effectiveGasPrice);
       expect(await user.getBalance()).to.eq(
         startingBalance.sub(costOfGas),

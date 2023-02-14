@@ -7,6 +7,7 @@ const { loadFixture } = waffle;
 
 import {
   MockERC20,
+  MockRebasingERC20,
   MockButtonWrapper,
   MockSwapRouter,
   Tranche,
@@ -18,7 +19,7 @@ import {
 
 interface TestContext {
   router: UniV3LoanRouter;
-  mockCollateralToken: MockERC20;
+  mockCollateralToken: MockRebasingERC20;
   mockCashToken: MockERC20;
   bond: BondController;
   tranches: Tranche[];
@@ -40,7 +41,9 @@ describe("Uniswap V3 Loan Router", () => {
     const mockSwapRouter = <MockSwapRouter>await deploy("MockSwapRouter", admin, []);
     const router = <UniV3LoanRouter>await deploy("UniV3LoanRouter", admin, [mockSwapRouter.address]);
 
-    const mockCollateralToken = <MockERC20>await deploy("MockERC20", admin, ["Mock ERC20", "MOCK"]);
+    const mockCollateralToken = <MockRebasingERC20>(
+      await deploy("MockRebasingERC20", signers[0], ["Mock Rebasing ERC20", "MOCK-REBASE", 18])
+    );
     const mockCashToken = <MockERC20>await deploy("MockERC20", admin, ["Mock ERC20", "MOCK"]);
 
     const trancheImplementation = <Tranche>await deploy("Tranche", admin, []);
@@ -392,7 +395,7 @@ describe("Uniswap V3 Loan Router", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("482158");
+      expect(gasUsed.toString()).to.equal("499271");
     });
   });
 });
@@ -879,7 +882,7 @@ describe("Uniswap V3 Loan Router with wrapper", () => {
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("567834");
+      expect(gasUsed.toString()).to.equal("584912");
     });
   });
 });

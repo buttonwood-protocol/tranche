@@ -7,6 +7,7 @@ const { loadFixture } = waffle;
 
 import {
   MockERC20,
+  MockRebasingERC20,
   MockUniV2Router,
   Tranche,
   TrancheFactory,
@@ -17,7 +18,7 @@ import {
 
 interface TestContext {
   router: UniV2LoanRouter;
-  mockCollateralToken: MockERC20;
+  mockCollateralToken: MockRebasingERC20;
   mockCashToken: MockERC20;
   bond: BondController;
   tranches: Tranche[];
@@ -39,7 +40,9 @@ describe("Uniswap V2 Loan Router", () => {
     const mockUniV2Router = <MockUniV2Router>await deploy("MockUniV2Router", signers[0], []);
     const router = <UniV2LoanRouter>await deploy("UniV2LoanRouter", signers[0], [mockUniV2Router.address]);
 
-    const mockCollateralToken = <MockERC20>await deploy("MockERC20", signers[0], ["Mock ERC20", "MOCK"]);
+    const mockCollateralToken = <MockRebasingERC20>(
+      await deploy("MockRebasingERC20", signers[0], ["Mock Rebasing ERC20", "MOCK-REBASE", 18])
+    );
     const mockCashToken = <MockERC20>await deploy("MockERC20", signers[0], ["Mock ERC20", "MOCK"]);
 
     const trancheImplementation = <Tranche>await deploy("Tranche", admin, []);

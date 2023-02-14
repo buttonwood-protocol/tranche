@@ -20,8 +20,8 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [12.x]
-        os: [macOS-latest, windows-latest, ubuntu-latest]
+        node-version: [14.x]
+        os: [ubuntu-latest]
 
     steps:
       - name: Setup Repo
@@ -33,7 +33,7 @@ jobs:
           node-version: ${{ matrix.node-version }} # tests across multiple Deno versions
 
       - name: Install
-        run: yarn install
+        run: yarn install --immutable
 
       - name: Lint
         run: yarn lint
