@@ -1,11 +1,11 @@
-## `UniV3LoanRouter`
+## `UniV2LoanRouter`
 
 
 
-Loan router for the UniswapV3 AMM
+Loan router for the UniswapV2 AMM
 
 
-### `constructor(contract ISwapRouter _uniswapV3Router)` (public)
+### `constructor(contract IUniswapV2Router02 _uniswapV2Router)` (public)
 
 
 
