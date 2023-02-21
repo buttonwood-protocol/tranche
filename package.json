@@ -68,7 +68,7 @@
     "commit": "git-cz",
     "compile": "hardhat compile",
     "coverage": "hardhat coverage --solcoverjs ./.solcover.js --temp artifacts --testfiles \"./test/**/*.ts\"",
-    "gendocs": "solidity-docgen -i ./contracts --solc-module solc-0.8",
+    "gendocs": "solidity-docgen -i ./contracts --solc-module solc-0.8 -e ./contracts/test",
     "lint": "yarn run lint:sol && yarn run lint:ts && yarn run prettier:list-different",
     "lint:fix": "yarn run prettier && yarn run lint:sol:fix && yarn run lint:ts:fix",
     "lint:sol": "solhint --config ./.solhint.json --max-warnings 0 \"contracts/**/*.sol\"",

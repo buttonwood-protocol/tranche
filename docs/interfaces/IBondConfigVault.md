@@ -2,11 +2,11 @@
 
 Interface for storing BondConfigs
 
-### `addBondConfig(address collateralToken, uint256[] trancheRatios, uint256 duration)` (external)
+### `addBondConfig(address collateralToken, uint256[] trancheRatios, uint256 duration) → bool` (external)
 
-Adds new bond configuration to internal list
+Adds new bond configuration to internal list. Emits BondConfigAdded on successful add
 
-### `removeBondConfig(address collateralToken, uint256[] trancheRatios, uint256 duration)` (external)
+### `removeBondConfig(address collateralToken, uint256[] trancheRatios, uint256 duration) → bool` (external)
 
 Removes bond configuration to internal list
 

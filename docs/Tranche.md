@@ -1,12 +1,17 @@
 ## `Tranche`
 
 ERC20 token to represent a single tranche for a ButtonTranche bond
+Note: this contract has non-transferrable ownership given at init-time
+
+### `onlyBond()`
+
+Throws if called by any account other than the bond.
 
 ### `constructor()` (public)
 
 Constructor for Tranche ERC20 token
 
-### `init(string name, string symbol, address admin, address _collateralToken)` (public)
+### `init(string name, string symbol, address _bond, address _collateralToken)` (public)
 
 Constructor for Tranche ERC20 token
 

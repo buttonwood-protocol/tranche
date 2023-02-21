@@ -8,6 +8,16 @@ Controller for a ButtonTranche bond system
 
 ### `trancheCount() → uint256 count` (external)
 
+### `feeBps() → uint256 fee` (external)
+
+### `maturityDate() → uint256 maturityDate` (external)
+
+### `isMature() → bool isMature` (external)
+
+### `creationDate() → uint256 creationDate` (external)
+
+### `totalDebt() → uint256 totalDebt` (external)
+
 ### `deposit(uint256 amount)` (external)
 
 Deposit `amount` tokens from `msg.sender`, get tranche tokens in return
@@ -19,11 +29,12 @@ Requirements:
 
 Matures the bond. Disables deposits,
 fixes the redemption ratio, and distributes collateral to redemption pools
+Redeems any fees collected from deposits, sending redeemed funds to the contract owner
 Requirements:
 
 - The bond is not already mature
 - One of:
-  - `msg.sender` is `owner`
+  - `msg.sender` is owner
   - `maturityDate` has passed
 
 ### `redeemMature(address tranche, uint256 amount)` (external)
@@ -45,10 +56,21 @@ Requirements
 - The number of `amounts` is the same as the number of tranches
 - The `amounts` are in equivalent ratio to the tranche order
 
-### `Deposit(address from, uint256 amount)`
+### `setFee(uint256 newFeeBps)` (external)
+
+Updates the fee taken on deposit to the given new fee
+
+Requirements
+
+- `msg.sender` has admin role
+- `newFeeBps` is in range [0, 50]
+
+### `Deposit(address from, uint256 amount, uint256 feeBps)`
 
 ### `Mature(address caller)`
 
 ### `RedeemMature(address user, address tranche, uint256 amount)`
 
 ### `Redeem(address user, uint256[] amounts)`
+
+### `FeeUpdate(uint256 newFee)`

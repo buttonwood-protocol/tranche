@@ -6,4 +6,4 @@ Factory for BondController minimal proxy contracts
 
 Deploys a minimal proxy instance for a new bond with the given parameters.
 
-### `BondCreated(address newBondAddress)`
+### `BondCreated(address creator, address newBondAddress)`

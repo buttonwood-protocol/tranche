@@ -23,3 +23,7 @@ Only the contract owner can call this
 Iterates over configurations and mints bonds for each using the bondFactory
 
 Requires that enough time has passed since last minting. Uses block timestamp to calculate this.
+
+### `isInstance(address bond) → bool` (external)
+
+Checks if a given bond was instantiated by the minter

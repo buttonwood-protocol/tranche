@@ -13,3 +13,11 @@ Sets the waitingPeriod required between minting periods
 ### `mintBonds()` (external)
 
 Iterates over configurations and mints bonds for each using the bondFactory
+
+### `isInstance(address bond) → bool` (external)
+
+Checks if a given bond was instantiated by the minter
+
+### `BondMinted(address bond)`
+
+Event emitted when a new bond is minted using this minter

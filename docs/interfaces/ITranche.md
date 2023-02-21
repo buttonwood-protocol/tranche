@@ -2,6 +2,11 @@
 
 ERC20 token to represent a single tranche for a ButtonTranche bond
 
+### `bond() → address` (external)
+
+returns the BondController address which owns this Tranche contract
+It should have admin permissions to call mint, burn, and redeem functions
+
 ### `mint(address to, uint256 amount)` (external)
 
 Mint `amount` tokens to `to`
