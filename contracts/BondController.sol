@@ -131,7 +131,8 @@ contract BondController is IBondController, OwnableUpgradeable {
         TrancheData[] memory _tranches = tranches;
 
         uint256 newDebt;
-        uint256[] memory trancheValues = new uint256[](trancheCount);
+        // saving feeBps in memory to minimize sloads
+        uint256 _feeBps = feeBps;
         for (uint256 i = 0; i < _tranches.length; i++) {
             // NOTE: solidity 0.8 checks for over/underflow natively so no need for SafeMath
             uint256 trancheValue = (amount * _tranches[i].ratio) / TRANCHE_RATIO_GRANULARITY;
@@ -143,15 +144,7 @@ contract BondController is IBondController, OwnableUpgradeable {
                 trancheValue = Math.mulDiv(trancheValue, totalDebt, _collateralBalance);
             }
             newDebt += trancheValue;
-            trancheValues[i] = trancheValue;
-        }
-        totalDebt += newDebt;
-
-        TransferHelper.safeTransferFrom(collateralToken, _msgSender(), address(this), amount);
-        // saving feeBps in memory to minimize sloads
-        uint256 _feeBps = feeBps;
-        for (uint256 i = 0; i < trancheValues.length; i++) {
-            uint256 trancheValue = trancheValues[i];
+            
             // fee tranche tokens are minted and held by the contract
             // upon maturity, they are redeemed and underlying collateral are sent to the owner
             uint256 fee = (trancheValue * _feeBps) / BPS;
@@ -160,7 +153,12 @@ contract BondController is IBondController, OwnableUpgradeable {
             }
 
             _tranches[i].token.mint(_msgSender(), trancheValue - fee);
+
         }
+        totalDebt += newDebt;
+
+        TransferHelper.safeTransferFrom(collateralToken, _msgSender(), address(this), amount);
+
         emit Deposit(_msgSender(), amount, _feeBps);
 
         _enforceTotalDebt();
