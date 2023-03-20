@@ -649,7 +649,7 @@ describe("Bond Controller", () => {
       const tx = await bond.connect(user).deposit(amount);
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
-      expect(gasUsed.toString()).to.equal("293967");
+      expect(gasUsed.toString()).to.equal("293579");
     });
   });
 
